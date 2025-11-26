@@ -115,11 +115,22 @@ jobs:
           echo "$CHANGELOG" | head -c 200
           echo ""
       
+      - name: Run tests
+        run: gradle clean test --no-daemon
+      
       - name: Build plugin
         run: gradle clean build -x test --no-daemon
       
       - name: Validate plugin
         run: gradle validatePlugins --no-daemon
+      
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-release
+          path: build/test-results/
+          retention-days: 7
       
       - name: Publish to Maven Central (Sonatype)
         continue-on-error: true
