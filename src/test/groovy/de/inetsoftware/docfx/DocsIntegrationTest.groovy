@@ -11,6 +11,15 @@ import java.nio.file.Files
 
 import static org.junit.Assert.*
 
+/**
+ * Integration tests for the Docs task.
+ * 
+ * NOTE: These tests do NOT require dotnet or DocFX to be installed.
+ * All tests either:
+ * - Test early return paths (null/empty/non-existent source)
+ * - Test component logic in isolation (JSON generation, closure handling)
+ * - Never actually execute DocFX commands
+ */
 class DocsIntegrationTest {
 
     private def project

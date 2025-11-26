@@ -14,6 +14,13 @@ import java.nio.file.Path
 
 import static org.junit.Assert.*
 
+/**
+ * Tests for the Docs task's getExecutableInfo() method.
+ * 
+ * NOTE: These tests do NOT require dotnet or DocFX to be installed.
+ * They only test the logic for determining which executable to use,
+ * using mock files and reflection to access the private method.
+ */
 class DocsTest {
 
     private Project project
