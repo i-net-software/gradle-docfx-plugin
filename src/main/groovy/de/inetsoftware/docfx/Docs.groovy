@@ -1,5 +1,6 @@
 package de.inetsoftware.docfx
 
+import org.apache.tools.ant.taskdefs.condition.Os
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.tasks.TaskAction
@@ -69,8 +70,9 @@ class Docs extends DocfxDefaultTask {
         args.add(extension.source)
 
         execOps.exec { execSpec ->
-            execSpec.executable = extension.docsExecutable
-            execSpec.args = args
+            def executableInfo = getExecutableInfo()
+            execSpec.executable = executableInfo.executable
+            execSpec.args = executableInfo.args + args
             // Set environment variables from extension
             Map<String, String> envVars = extension.environmentVariables
             if (!envVars.isEmpty()) {
@@ -85,14 +87,40 @@ class Docs extends DocfxDefaultTask {
         args.add(extension.source)
 
         execOps.exec { execSpec ->
-            execSpec.executable = extension.docsExecutable
-            execSpec.args = args
+            def executableInfo = getExecutableInfo()
+            execSpec.executable = executableInfo.executable
+            execSpec.args = executableInfo.args + args
             // Set environment variables from extension
             Map<String, String> envVars = extension.environmentVariables
             if (!envVars.isEmpty()) {
                 execSpec.environment(envVars)
             }
         }
+    }
+    
+    /**
+     * Get executable information for DocFX.
+     * On Linux/macOS, if docfx.dll exists, use 'dotnet docfx.dll', otherwise use the executable directly.
+     */
+    private Map<String, Object> getExecutableInfo() {
+        def executable = extension.docsExecutable
+        def args = []
+        
+        // On non-Windows, check if we need to use 'dotnet docfx.dll'
+        if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
+            def executableFile = project.file(executable)
+            if (!executableFile.exists() || !executableFile.canExecute()) {
+                // Try docfx.dll instead
+                def docfxDll = new File(executableFile.parentFile, "docfx.dll")
+                if (docfxDll.exists()) {
+                    executable = "dotnet"
+                    args.add(docfxDll.absolutePath)
+                    LOGGER.quiet("Using 'dotnet docfx.dll' for DocFX execution")
+                }
+            }
+        }
+        
+        return [executable: executable, args: args]
     }
 }
 
