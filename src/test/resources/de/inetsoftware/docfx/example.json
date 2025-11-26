@@ -1,0 +1,107 @@
+{
+  "metadata": [{
+    "src": [{
+      "src": "../sdk/FrameworkSDK",
+      "files": [
+        "**/bin/Release/*Framework.SDK.dll"
+      ],
+      "exclude": [
+        "UnitTests/**",
+        "TestResults/**",
+        "packages/**",
+        "**Test*.dll"
+      ]
+    }],
+    "dest": "dev/sdk/framework",
+    "shouldSkipMarkup": false,
+    "disableGitFeatures": false,
+    "properties": {
+      "TargetFramework": "net46"
+    }
+  },
+    {
+      "src": [{
+        "src": "../sdk/CoreSDK",
+        "files": [
+          "**/bin/Release/**/*Core.SDK.dll"
+        ],
+        "exclude": [
+          "UnitTests/**",
+          "TestResults/**",
+          "packages/**",
+          "**Test*.dll"
+        ]
+      }],
+      "dest": "dev/sdk/core",
+      "shouldSkipMarkup": false,
+      "disableGitFeatures": false,
+      "properties": {
+        "TargetFramework": "netcoreapp2.0"
+      }
+    }
+  ],
+  "build": {
+    "content": [{
+      "src": "dev/sdk/framework",
+      "files": [
+        "**/*.yml"
+      ],
+      "dest": "dev/sdk/framework"
+    },
+      {
+        "src": "dev/sdk/core",
+        "files": [
+          "**/*.yml"
+        ],
+        "dest": "dev/sdk/core"
+      },
+      {
+        "src": "general",
+        "files": [
+          "**/*.md"
+        ],
+        "dest": "general"
+      },
+      {
+        "src": "dev",
+        "files": [
+          "**/*.md"
+        ],
+        "dest": "dev"
+      },
+      {
+        "src": "admin",
+        "files": [
+          "**/*.md"
+        ],
+        "dest": "admin"
+      },
+      {
+        "src": ".",
+        "files": [
+          "*.md"
+        ]
+      }
+    ],
+    "resource": [{
+      "files": [
+        "images/**"
+      ]
+    }],
+    "dest": "_site",
+    "globalMetadata": {
+      "_appTitle": "Platform Provisioning",
+      "_appLogoPath": "images/3esi.png",
+      "_appFaviconPath": "images/3esi-favicon.png",
+      "_disableFooter": "true"
+    },
+    "template": [
+      "default", "templates/3esi"
+    ],
+    "postProcessors": [],
+    "noLangKeyword": false,
+    "keepFileLink": false,
+    "cleanupCacheHistory": false,
+    "disableGitFeatures": false
+  }
+}

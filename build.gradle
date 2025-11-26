@@ -1,55 +1,142 @@
-// First, apply the publishing plugin
-buildscript {
-  repositories {
-    maven {
-      url "https://plugins.gradle.org/m2/"
-    }
-  }
-  dependencies {
-    classpath "com.gradle.publish:plugin-publish-plugin:0.9.10"
-  }
+plugins {
+    id 'java-gradle-plugin'
+    id 'com.gradle.plugin-publish' version '1.2.1' // Updated for Gradle 9 compatibility
+    id 'signing' // Required for Maven Central
+    id 'io.github.gradle-nexus.publish-plugin' version '2.0.0' // Automates Sonatype Nexus publishing
 }
 
-apply plugin: "com.gradle.plugin-publish"
-// Apply other plugins here, e.g. java plugin for a plugin written in java or
-// the groovy plugin for a plugin written in groovy
+apply plugin: 'groovy'
+apply plugin: 'maven-publish'
 
-// If your plugin has any external java dependencies, Gradle will attempt to
-// downloaded them from JCenter for anyone using the plugins DSL
-// so you should probably use JCenter for dependency resolution in your own
-// project.
+group = 'de.inetsoftware.gradle'
+
 repositories {
-  jcenter()
+    mavenCentral()
 }
+
+description 'Gradle plugin for DocFX documentation generation.'
 
 dependencies {
-  compile gradleApi()
-  compile localGroovy() //not needed for Java plugins
-  compile group: "com.fasterxml.jackson.core", name: "jackson-core", version: "2.9.4"
-  compile group: "com.fasterxml.jackson.core", name: "jackson-databind", version: "2.9.4"
-  compile group: "com.fasterxml.jackson.core", name: "jackson-annotations", version: "2.9.4"
-  testCompile group: "junit", name: "junit", version: "4.12"
-  // other dependencies that your plugin requires
+    implementation gradleApi()
+    implementation localGroovy()
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.15.2'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.15.2'
+    
+    // JUnit 4 for JUnit-based tests
+    testImplementation 'junit:junit:4.13.2'
+    // Groovy test support - use same version as Gradle's bundled Groovy
+    testImplementation localGroovy()
+    
+    // Spock version selection based on Gradle version:
+    // - Gradle 8.x uses Groovy 3.0.x -> Spock 2.3-groovy-3.0
+    // - Gradle 9.x uses Groovy 4.0.x -> Spock 2.3-groovy-4.0
+    def spockVersion = project.gradle.gradleVersion.startsWith('9.') 
+        ? '2.3-groovy-4.0' 
+        : '2.3-groovy-3.0'
+    testImplementation "org.spockframework:spock-core:${spockVersion}"
 }
 
-// Unless overridden in the pluginBundle config DSL, the project version will
-// be used as your plugin version when publishing
-version = "0.0.6"
-group = "net.karlmartens.docfx"
-
-// The configuration example below shows the minimum required properties
-// configured to publish your plugin to the plugin portal
-pluginBundle {
-  website = 'https://github.com/karlmartens/docfx-plugin'
-  vcsUrl = 'https://github.com/karlmartens/docfx-plugin.git'
-  description = 'Docfx plugin'
-  tags = ['docfx', 'build']
-
-  plugins {
-    DotnetPlugin {
-      id = 'net.karlmartens.docfx'
-      displayName = 'DocFX build plugin'
+gradlePlugin {
+    website = 'https://github.com/i-net-software/gradle-docfx-plugin'
+    vcsUrl = 'https://github.com/i-net-software/gradle-docfx-plugin'
+    
+    plugins {
+        docfxPlugin {
+            id = 'de.inetsoftware.docfx'
+            implementationClass = 'de.inetsoftware.docfx.DocfxPlugin'
+            displayName = 'Gradle DocFX Plugin'
+            description = 'Gradle plugin for DocFX documentation generation.'
+            tags.set(['docfx', 'documentation', 'dotnet'])
+        }
     }
-  }
 }
 
+publishing {
+    repositories {
+        mavenLocal()
+    }
+}
+
+// Configure Nexus Publish Plugin for Sonatype/Maven Central
+nexusPublishing {
+    repositories {
+        sonatype {
+            // New Central Portal URLs
+            nexusUrl.set(uri("https://ossrh-staging-api.central.sonatype.com/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://central.sonatype.com/repository/maven-snapshots/"))
+            // Credentials - try both property name variations
+            username.set(
+                project.findProperty('ossrhUsername') 
+                    ?: project.findProperty('sonatypeUsername')
+                    ?: System.getenv('SONATYPE_USERNAME') 
+                    ?: System.getenv('OSSRH_USERNAME')
+                    ?: ""
+            )
+            password.set(
+                project.findProperty('ossrhPassword')
+                    ?: project.findProperty('sonatypePassword')
+                    ?: System.getenv('SONATYPE_PASSWORD')
+                    ?: System.getenv('OSSRH_PASSWORD')
+                    ?: ""
+            )
+            // Staging profile ID - should be the UUID from Sonatype, not the domain
+            // Get it from: https://central.sonatype.com/ -> Staging Profiles
+            // Or leave it out to auto-detect by groupId
+            // If you have a staging profile UUID, uncomment and set it:
+            // stagingProfileId.set('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx')
+        }
+    }
+}
+
+closeStagingRepositories {
+    closeStagingRepositories.dependsOn 'publishToSonatype'
+    publish.finalizedBy 'closeStagingRepositories'
+}
+
+// Configure signing for Maven Central
+signing {
+    useInMemoryPgpKeys( project.findProperty('signing.key'), project.findProperty('signing.password') )
+    sign publishing.publications
+}
+
+// Configure POM metadata for Maven Central (if publishing there)
+// The java-gradle-plugin automatically creates publications, configure them via afterEvaluate
+afterEvaluate {
+    // For snapshots, skip sources and javadoc tasks to minimize published artifacts
+    if (project.version.toString().endsWith('-SNAPSHOT')) {
+        tasks.named('sourcesJar').configure {
+            enabled = false
+        }
+        tasks.named('javadocJar').configure {
+            enabled = false
+        }
+    }
+    
+    publishing.publications.all {
+        if (it instanceof MavenPublication) {
+            it.pom {
+                name = 'Gradle DocFX Plugin'
+                description = 'Gradle plugin for DocFX documentation generation.'
+                url = 'https://github.com/i-net-software/gradle-docfx-plugin'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'inetsoftware'
+                        name = 'i-net software'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/i-net-software/gradle-docfx-plugin.git'
+                    developerConnection = 'scm:git:ssh://github.com/i-net-software/gradle-docfx-plugin.git'
+                    url = 'https://github.com/i-net-software/gradle-docfx-plugin'
+                }
+            }
+        }
+    }
+}
