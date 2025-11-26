@@ -21,6 +21,12 @@
 * Added artifact signing configuration
 * Added comprehensive README with migration guide
 * Added CHANGELOG.md and RELEASE.md documentation
+* Added `docfxZip` task that automatically packages generated documentation into a zip file
+* Added `locale` property to `DocfxExtension` - automatically sets locale environment variables (LC_ALL, LANG, LC_CTYPE)
+* Added `environment` map property to `DocfxExtension` - allows setting custom environment variables for DocFX process
+* Added `additionalResources` closure property to `DocfxExtension` - allows copying additional files before DocFX execution
+* Added `filter` and `title` properties to `DocfxExtension` for future use
+* Environment variables are now automatically passed to all DocFX commands (info, metadata, build)
 
 ## 0.0.6 (Original)
 

@@ -85,6 +85,7 @@ The plugin provides the following tasks:
 - **`info`** - Displays DocFX version information
 - **`clean`** - Cleans generated documentation files (metadata and build output)
 - **`docs`** - Generates documentation (runs `info` first, then `metadata` and `build`)
+- **`docfxZip`** - Packages the generated documentation into a zip file (automatically runs after `docs`)
 
 ### Configuration
 
@@ -92,8 +93,15 @@ The `docfx` extension supports the following properties:
 
 - **`source`** (String) - Path to the `docfx.json` configuration file (required)
 - **`docsHome`** (String) - Path to DocFX installation directory (optional, defaults to `DOCFX_HOME` environment variable)
+- **`locale`** (String) - Locale for DocFX execution (e.g., "de-DE"). Automatically sets `LC_ALL`, `LANG`, and `LC_CTYPE` environment variables
+- **`filter`** (String) - Filter string for DocFX metadata generation (optional, default: empty string)
+- **`title`** (String) - Title for documentation (optional, default: "API Documentation")
+- **`environment`** (Map<String, String>) - Additional environment variables to pass to DocFX process
+- **`additionalResources`** (Closure) - Closure called before DocFX execution to add additional resources. Receives the docfx.json parent directory as parameter
 
-### Example
+### Examples
+
+#### Basic Usage
 
 ```groovy
 docfx {
@@ -105,6 +113,39 @@ docfx {
 // 1. Run 'info' to check DocFX version
 // 2. Run 'metadata' to extract API documentation
 // 3. Run 'build' to generate the final documentation site
+// The docfxZip task will automatically package the output
+```
+
+#### With Locale and Environment Variables
+
+```groovy
+docfx {
+    source = 'docfx.json'
+    locale = 'de-DE'  // Automatically sets LC_ALL, LANG, LC_CTYPE
+    environment = [
+        'DOCFX_CUSTOM_VAR': 'value'
+    ]
+}
+```
+
+#### With Additional Resources
+
+```groovy
+docfx {
+    source = 'docfx.json'
+    additionalResources = { root ->
+        // Copy additional files into the docfx working directory
+        copy {
+            into root
+            from 'readme.md'
+            rename 'readme.md', 'index.md'
+        }
+        copy {
+            into root
+            from 'logo.svg'
+        }
+    }
+}
 ```
 
 ## Requirements

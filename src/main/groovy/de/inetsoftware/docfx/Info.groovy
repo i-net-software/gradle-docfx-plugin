@@ -22,6 +22,11 @@ class Info extends DocfxDefaultTask {
         execOps.exec { execSpec ->
             execSpec.executable = extension.docsExecutable
             execSpec.args = args
+            // Set environment variables from extension
+            Map<String, String> envVars = extension.environmentVariables
+            if (!envVars.isEmpty()) {
+                execSpec.environment(envVars)
+            }
         }
     }
 }

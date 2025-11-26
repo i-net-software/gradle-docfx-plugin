@@ -26,6 +26,14 @@ class Docs extends DocfxDefaultTask {
             return
         }
 
+        // Call additionalResources closure if provided (before processing)
+        if (extension.additionalResources != null) {
+            def sourceFile = project.file(source)
+            def sourceDir = sourceFile.parentFile
+            LOGGER.debug("Calling additionalResources closure with root: ${sourceDir}")
+            extension.additionalResources.call(sourceDir)
+        }
+
         LOGGER.quiet("Processing '${source}'")
         doMetadata()
         doBuild()
@@ -39,6 +47,11 @@ class Docs extends DocfxDefaultTask {
         execOps.exec { execSpec ->
             execSpec.executable = extension.docsExecutable
             execSpec.args = args
+            // Set environment variables from extension
+            Map<String, String> envVars = extension.environmentVariables
+            if (!envVars.isEmpty()) {
+                execSpec.environment(envVars)
+            }
         }
     }
 
@@ -50,6 +63,11 @@ class Docs extends DocfxDefaultTask {
         execOps.exec { execSpec ->
             execSpec.executable = extension.docsExecutable
             execSpec.args = args
+            // Set environment variables from extension
+            Map<String, String> envVars = extension.environmentVariables
+            if (!envVars.isEmpty()) {
+                execSpec.environment(envVars)
+            }
         }
     }
 }
