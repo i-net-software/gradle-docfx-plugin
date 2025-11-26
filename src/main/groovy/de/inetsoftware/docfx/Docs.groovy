@@ -141,39 +141,8 @@ class Docs extends DocfxDefaultTask {
                     workingDir = docfxDll.parentFile
                     LOGGER.quiet("Using 'dotnet docfx.dll' for DocFX execution from ${workingDir}")
                 }
-            } else {
-                // Executable exists and is executable - check if it's actually a script that might work
-                // If it's a text file (script), it might work, otherwise try dotnet approach
-                try {
-                    def firstLine = executableFile.withReader { it.readLine() }
-                    if (firstLine != null && (firstLine.startsWith("#!") || firstLine.startsWith("#!/"))) {
-                        // It's a script, use it directly
-                        LOGGER.debug("Using docfx script: ${executable}")
-                    } else {
-                        // Not a script, might be a binary that doesn't work - try dotnet approach
-                        if (docfxDll.exists()) {
-                            if (runtimeConfig.exists()) {
-                                fixRuntimeConfig(runtimeConfig)
-                            }
-                            executable = "dotnet"
-                            args.add("docfx.dll")
-                            workingDir = docfxDll.parentFile
-                            LOGGER.quiet("Using 'dotnet docfx.dll' for DocFX execution from ${workingDir}")
-                        }
-                    }
-                } catch (Exception e) {
-                    // If we can't read it, assume it's a binary and try dotnet approach
-                    if (docfxDll.exists()) {
-                        if (runtimeConfig.exists()) {
-                            fixRuntimeConfig(runtimeConfig)
-                        }
-                        executable = "dotnet"
-                        args.add("docfx.dll")
-                        workingDir = docfxDll.parentFile
-                        LOGGER.quiet("Using 'dotnet docfx.dll' for DocFX execution from ${workingDir}")
-                    }
-                }
             }
+            // If executable exists and is executable, use it directly (don't second-guess)
         }
         
         def result = [executable: executable, args: args]
