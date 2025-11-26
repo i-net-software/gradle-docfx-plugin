@@ -7,7 +7,7 @@ import org.gradle.api.tasks.bundling.Zip
 class DocfxPlugin implements Plugin<Project> {
 
     private static final String INFO_TASK = "info"
-    private static final String CLEAN_TASK = "clean"
+    private static final String CLEAN_TASK = "docfxClean"
     private static final String DOCS_TASK = "docs"
     private static final String DOCFX_ZIP_TASK = "docfxZip"
 
@@ -22,7 +22,7 @@ class DocfxPlugin implements Plugin<Project> {
             task.extension = extension
         }
 
-        // Create clean task
+        // Create docfxClean task (renamed from 'clean' to avoid conflict with Gradle's standard clean task)
         def cleanTask = project.tasks.create(CLEAN_TASK, Clean) { task ->
             task.extension = extension
             task.dependsOn(infoTask)

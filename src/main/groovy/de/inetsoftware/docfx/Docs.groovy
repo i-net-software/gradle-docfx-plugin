@@ -1,5 +1,7 @@
 package de.inetsoftware.docfx
 
+import groovy.json.JsonBuilder
+import groovy.json.JsonSlurper
 import org.apache.tools.ant.taskdefs.condition.Os
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
@@ -69,12 +71,18 @@ class Docs extends DocfxDefaultTask {
         args.add("metadata")
         args.add(extension.source)
 
+        // Get executable info before the closure (to avoid delegate issues)
+        def executableInfo = getExecutableInfo()
+        Map<String, String> envVars = extension.environmentVariables
+
         execOps.exec { execSpec ->
-            def executableInfo = getExecutableInfo()
             execSpec.executable = executableInfo.executable
             execSpec.args = executableInfo.args + args
+            // Set working directory if specified (needed for dotnet docfx.dll)
+            if (executableInfo.workingDir != null) {
+                execSpec.workingDir = executableInfo.workingDir
+            }
             // Set environment variables from extension
-            Map<String, String> envVars = extension.environmentVariables
             if (!envVars.isEmpty()) {
                 execSpec.environment(envVars)
             }
@@ -86,12 +94,18 @@ class Docs extends DocfxDefaultTask {
         args.add("build")
         args.add(extension.source)
 
+        // Get executable info before the closure (to avoid delegate issues)
+        def executableInfo = getExecutableInfo()
+        Map<String, String> envVars = extension.environmentVariables
+
         execOps.exec { execSpec ->
-            def executableInfo = getExecutableInfo()
             execSpec.executable = executableInfo.executable
             execSpec.args = executableInfo.args + args
+            // Set working directory if specified (needed for dotnet docfx.dll)
+            if (executableInfo.workingDir != null) {
+                execSpec.workingDir = executableInfo.workingDir
+            }
             // Set environment variables from extension
-            Map<String, String> envVars = extension.environmentVariables
             if (!envVars.isEmpty()) {
                 execSpec.environment(envVars)
             }
@@ -101,26 +115,104 @@ class Docs extends DocfxDefaultTask {
     /**
      * Get executable information for DocFX.
      * On Linux/macOS, if docfx.dll exists, use 'dotnet docfx.dll', otherwise use the executable directly.
+     * Returns a map with: executable, args, and optionally workingDir.
      */
     private Map<String, Object> getExecutableInfo() {
         def executable = extension.docsExecutable
         def args = []
+        def workingDir = null
         
         // On non-Windows, check if we need to use 'dotnet docfx.dll'
         if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
             def executableFile = project.file(executable)
+            def docfxDll = new File(executableFile.parentFile, "docfx.dll")
+            def runtimeConfig = new File(executableFile.parentFile, "docfx.runtimeconfig.json")
+            
+            // If executable doesn't exist or isn't executable, try docfx.dll
             if (!executableFile.exists() || !executableFile.canExecute()) {
-                // Try docfx.dll instead
-                def docfxDll = new File(executableFile.parentFile, "docfx.dll")
                 if (docfxDll.exists()) {
+                    // Try to fix runtimeconfig.json to make it framework-dependent
+                    if (runtimeConfig.exists()) {
+                        fixRuntimeConfig(runtimeConfig)
+                    }
                     executable = "dotnet"
-                    args.add(docfxDll.absolutePath)
-                    LOGGER.quiet("Using 'dotnet docfx.dll' for DocFX execution")
+                    // Use relative path and set working directory so dotnet can find runtime dependencies
+                    args.add("docfx.dll")
+                    workingDir = docfxDll.parentFile
+                    LOGGER.quiet("Using 'dotnet docfx.dll' for DocFX execution from ${workingDir}")
+                }
+            } else {
+                // Executable exists and is executable - check if it's actually a script that might work
+                // If it's a text file (script), it might work, otherwise try dotnet approach
+                try {
+                    def firstLine = executableFile.withReader { it.readLine() }
+                    if (firstLine != null && (firstLine.startsWith("#!") || firstLine.startsWith("#!/"))) {
+                        // It's a script, use it directly
+                        LOGGER.debug("Using docfx script: ${executable}")
+                    } else {
+                        // Not a script, might be a binary that doesn't work - try dotnet approach
+                        if (docfxDll.exists()) {
+                            if (runtimeConfig.exists()) {
+                                fixRuntimeConfig(runtimeConfig)
+                            }
+                            executable = "dotnet"
+                            args.add("docfx.dll")
+                            workingDir = docfxDll.parentFile
+                            LOGGER.quiet("Using 'dotnet docfx.dll' for DocFX execution from ${workingDir}")
+                        }
+                    }
+                } catch (Exception e) {
+                    // If we can't read it, assume it's a binary and try dotnet approach
+                    if (docfxDll.exists()) {
+                        if (runtimeConfig.exists()) {
+                            fixRuntimeConfig(runtimeConfig)
+                        }
+                        executable = "dotnet"
+                        args.add("docfx.dll")
+                        workingDir = docfxDll.parentFile
+                        LOGGER.quiet("Using 'dotnet docfx.dll' for DocFX execution from ${workingDir}")
+                    }
                 }
             }
         }
         
-        return [executable: executable, args: args]
+        def result = [executable: executable, args: args]
+        if (workingDir != null) {
+            result.workingDir = workingDir
+        }
+        return result
+    }
+    
+    /**
+     * Fix docfx.runtimeconfig.json to make it framework-dependent instead of self-contained.
+     * This allows dotnet to use the installed .NET runtime instead of requiring all runtime files.
+     */
+    private void fixRuntimeConfig(File runtimeConfigFile) {
+        try {
+            def content = runtimeConfigFile.text
+            // Check if it already has a framework specified
+            if (!content.contains('"framework"') && !content.contains('"frameworks"')) {
+                // Parse and modify the JSON to add framework dependency
+                def json = new groovy.json.JsonSlurper().parseText(content)
+                if (json.runtimeOptions == null) {
+                    json.runtimeOptions = [:]
+                }
+                if (json.runtimeOptions.framework == null) {
+                    // Add a framework dependency - try to use a common one
+                    // DocFX typically targets .NET Core 2.1 or later
+                    json.runtimeOptions.framework = [
+                        name: "Microsoft.NETCore.App",
+                        version: "2.1.0"  // Minimum version, will use latest installed
+                    ]
+                    // Write back the modified JSON
+                    def jsonBuilder = new groovy.json.JsonBuilder(json)
+                    runtimeConfigFile.text = jsonBuilder.toPrettyString()
+                    LOGGER.debug("Modified ${runtimeConfigFile.name} to be framework-dependent")
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Could not modify ${runtimeConfigFile.name}: ${e.message}")
+        }
     }
 }
 

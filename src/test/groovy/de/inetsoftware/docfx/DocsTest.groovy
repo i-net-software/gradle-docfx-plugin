@@ -95,7 +95,8 @@ class DocsTest {
 
         assertEquals("dotnet", result.executable)
         assertEquals(1, result.args.size())
-        assertEquals(docfxDll.absolutePath, result.args[0])
+        assertEquals("docfx.dll", result.args[0]) // Now uses relative path
+        assertEquals(docfxDll.parentFile, result.workingDir) // Working dir should be set
     }
 
     @Test
@@ -173,7 +174,8 @@ class DocsTest {
         // Should use dotnet since exe is not executable
         assertEquals("dotnet", result.executable)
         assertEquals(1, result.args.size())
-        assertEquals(docfxDll.absolutePath, result.args[0])
+        assertEquals("docfx.dll", result.args[0]) // Now uses relative path
+        assertEquals(docfxDll.parentFile, result.workingDir) // Working dir should be set
     }
 
     @Test

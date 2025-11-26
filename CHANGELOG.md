@@ -7,6 +7,7 @@
 * Changed package structure from `net.karlmartens.docfx` to `de.inetsoftware.docfx`
 * Updated group ID from `net.karlmartens.docfx` to `de.inetsoftware.gradle`
 * Updated plugin ID from `net.karlmartens.docfx` to `de.inetsoftware.docfx`
+* **BREAKING**: Renamed `clean` task to `docfxClean` to avoid conflict with Gradle's standard `clean` task
 
 ### Fixed
 * Fixed Gradle 9 compatibility by replacing `project.exec()` with `ExecOperations` injection

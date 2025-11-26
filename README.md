@@ -83,7 +83,7 @@ docfx {
 The plugin provides the following tasks:
 
 - **`info`** - Displays DocFX version information
-- **`clean`** - Cleans generated documentation files (metadata and build output)
+- **`docfxClean`** - Cleans generated documentation files (metadata and build output)
 - **`docs`** - Generates documentation (runs `info` first, then `metadata` and `build`)
 - **`docfxZip`** - Packages the generated documentation into a zip file (automatically runs after `docs`)
 
