@@ -14,6 +14,8 @@ class DocfxPlugin implements Plugin<Project> {
     @Override
     void apply(Project project) {
         final DocfxExtension extension = project.extensions.create("docfx", DocfxExtension)
+        // Set project reference for accessing project properties
+        extension.project = project
 
         // Create info task
         def infoTask = project.tasks.create(INFO_TASK, Info) { task ->

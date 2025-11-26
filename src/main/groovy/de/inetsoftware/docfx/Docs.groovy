@@ -26,15 +26,39 @@ class Docs extends DocfxDefaultTask {
             return
         }
 
-        // Call additionalResources closure if provided (before processing)
-        if (extension.additionalResources != null) {
-            def sourceFile = project.file(source)
-            def sourceDir = sourceFile.parentFile
-            LOGGER.debug("Calling additionalResources closure with root: ${sourceDir}")
-            extension.additionalResources.call(sourceDir)
+        def sourceFile = project.file(source)
+        if (!sourceFile.exists()) {
+            LOGGER.error("Source file does not exist: ${sourceFile.absolutePath}")
+            return
         }
 
-        LOGGER.quiet("Processing '${source}'")
+        // Auto-generate docfx.json if source is not a JSON file
+        File docfxJsonFile
+        if (!extension.isSourceJsonFile()) {
+            LOGGER.quiet("Auto-generating docfx.json from source: ${sourceFile.name}")
+            def generator = new DocfxJsonGenerator(extension, project)
+            docfxJsonFile = generator.generateDocfxJson(sourceFile)
+            
+            // Update extension.source to point to generated docfx.json
+            extension.source = docfxJsonFile.absolutePath
+            
+            // Call additionalResources closure with the docfx.json directory
+            if (extension.additionalResources != null) {
+                def docfxDir = docfxJsonFile.parentFile
+                LOGGER.debug("Calling additionalResources closure with root: ${docfxDir}")
+                extension.additionalResources.call(docfxDir)
+            }
+        } else {
+            docfxJsonFile = sourceFile
+            // Call additionalResources closure if provided (before processing)
+            if (extension.additionalResources != null) {
+                def sourceDir = sourceFile.parentFile
+                LOGGER.debug("Calling additionalResources closure with root: ${sourceDir}")
+                extension.additionalResources.call(sourceDir)
+            }
+        }
+
+        LOGGER.quiet("Processing '${extension.source}'")
         doMetadata()
         doBuild()
     }

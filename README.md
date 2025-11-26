@@ -91,13 +91,22 @@ The plugin provides the following tasks:
 
 The `docfx` extension supports the following properties:
 
-- **`source`** (String) - Path to the `docfx.json` configuration file (required)
+- **`source`** (String) - Path to the `docfx.json` configuration file or source file (e.g., `.dll`, `.csproj`). If not a `.json` file, the plugin will auto-generate `docfx.json` (required)
 - **`docsHome`** (String) - Path to DocFX installation directory (optional, defaults to `DOCFX_HOME` environment variable)
 - **`locale`** (String) - Locale for DocFX execution (e.g., "de-DE"). Automatically sets `LC_ALL`, `LANG`, and `LC_CTYPE` environment variables
 - **`filter`** (String) - Filter string for DocFX metadata generation (optional, default: empty string)
 - **`title`** (String) - Title for documentation (optional, default: "API Documentation")
 - **`environment`** (Map<String, String>) - Additional environment variables to pass to DocFX process
 - **`additionalResources`** (Closure) - Closure called before DocFX execution to add additional resources. Receives the docfx.json parent directory as parameter
+- **`template`** (String) - DocFX template to use (optional, default: "statictoc")
+- **`markdownEngine`** (String) - Markdown engine name (optional, default: "markdig")
+- **`xrefService`** (String) - Cross-reference service URL (optional, default: Microsoft xref service)
+- **`appFooter`** (String) - Custom footer HTML for documentation (optional, auto-generated from project properties if not set)
+- **`outputDir`** (String) - Output directory for generated documentation (optional, default: "_site")
+- **`metadataDest`** (String) - Destination directory for metadata files (optional, default: "obj/api")
+- **`contentDest`** (String) - Destination directory for content files (optional, default: "api")
+- **`companyName`** (String) - Company name for toc.yml and footer (optional, falls back to `productVersion.CompanyName` if available)
+- **`companyUrl`** (String) - Company URL for toc.yml (optional, falls back to `productVersion.CompanyUrl` if available)
 
 ### Examples
 
@@ -105,7 +114,7 @@ The `docfx` extension supports the following properties:
 
 ```groovy
 docfx {
-    source = 'docfx.json'
+    source = 'docfx.json'  // Use existing docfx.json
     docsHome = '/opt/docfx'  // Optional
 }
 
@@ -114,6 +123,24 @@ docfx {
 // 2. Run 'metadata' to extract API documentation
 // 3. Run 'build' to generate the final documentation site
 // The docfxZip task will automatically package the output
+```
+
+#### Auto-Generate docfx.json from Source File
+
+```groovy
+docfx {
+    source = 'path/to/MyAssembly.dll'  // Plugin will auto-generate docfx.json
+    title = 'My API Documentation'
+    locale = 'en-US'
+    companyName = 'My Company'
+    companyUrl = 'https://www.example.com'
+}
+
+// The plugin automatically:
+// 1. Detects that source is not a .json file
+// 2. Generates docfx.json with sensible defaults
+// 3. Generates toc.yml and index.md
+// 4. Then proceeds with normal DocFX execution
 ```
 
 #### With Locale and Environment Variables

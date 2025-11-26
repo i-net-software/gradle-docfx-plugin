@@ -27,6 +27,17 @@
 * Added `additionalResources` closure property to `DocfxExtension` - allows copying additional files before DocFX execution
 * Added `filter` and `title` properties to `DocfxExtension` for future use
 * Environment variables are now automatically passed to all DocFX commands (info, metadata, build)
+* **Auto-generation of docfx.json**: Plugin now automatically generates `docfx.json` configuration file when `source` points to a non-JSON file (e.g., `.dll`, `.csproj`, `.sln`). This eliminates the need for manual `docfx.json` creation in most cases.
+* **Enhanced configuration options**: Added properties for customizing generated `docfx.json`:
+  * `template` - DocFX template to use (default: "statictoc")
+  * `markdownEngine` - Markdown engine name (default: "markdig")
+  * `xrefService` - Cross-reference service URL (default: Microsoft xref service)
+  * `appFooter` - Custom footer HTML (auto-generated from project properties if not set)
+  * `outputDir` - Output directory for generated documentation (default: "_site")
+  * `metadataDest` - Destination for metadata files (default: "obj/api")
+  * `contentDest` - Destination for content files (default: "api")
+* **Company information support**: Added `companyName` and `companyUrl` properties for including company information in generated `toc.yml` and footer. Falls back to `productVersion.CompanyName` and `productVersion.CompanyUrl` if available.
+* **Automatic file generation**: Plugin now automatically generates `toc.yml` and `index.md` files when auto-generating `docfx.json`.
 
 ## 0.0.6 (Original)
 

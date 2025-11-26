@@ -1,6 +1,7 @@
 package de.inetsoftware.docfx
 
 import org.apache.tools.ant.taskdefs.condition.Os
+import org.gradle.api.Project
 
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -13,6 +14,22 @@ class DocfxExtension {
     String title = "API Documentation"
     Map<String, String> environment = [:]
     Closure additionalResources = null
+    
+    // DocFX configuration options for auto-generated docfx.json
+    String template = "statictoc"
+    String markdownEngine = "markdig"
+    String xrefService = "https://xref.docs.microsoft.com/query?uid={uid}"
+    String appFooter = null  // If null, will be auto-generated if project has productVersion
+    String outputDir = "_site"
+    String metadataDest = "obj/api"
+    String contentDest = "api"
+    
+    // Company information for toc.yml (optional, will use project properties if available)
+    String companyName = null
+    String companyUrl = null
+    
+    // Project reference for accessing project properties (set by plugin)
+    Project project = null
 
     DocfxExtension() {
         docsHome = System.getenv("DOCFX_HOME")
@@ -53,6 +70,57 @@ class DocfxExtension {
         }
         
         return env
+    }
+    
+    /**
+     * Check if source is a JSON file (docfx.json)
+     */
+    boolean isSourceJsonFile() {
+        if (source == null || source.isEmpty()) {
+            return false
+        }
+        return source.toLowerCase().endsWith('.json')
+    }
+    
+    /**
+     * Get the locale value for docfx.json globalMetadata.
+     * Returns the locale property if set, otherwise defaults to 'de-DE' or project property.
+     */
+    String getLocaleForMetadata() {
+        if (locale != null && !locale.isEmpty()) {
+            return locale
+        }
+        if (project != null && project.hasProperty('docFxLocale')) {
+            return project.docFxLocale
+        }
+        return 'de-DE'
+    }
+    
+    /**
+     * Get the app footer for docfx.json globalMetadata.
+     * Returns custom footer if set, otherwise generates default from project properties.
+     */
+    String getAppFooterForMetadata() {
+        if (appFooter != null && !appFooter.isEmpty()) {
+            return appFooter
+        }
+        if (project != null && project.hasProperty('productVersion')) {
+            def pv = project.productVersion
+            def startYear = pv.hasProperty('CopyrightStart') ? pv.CopyrightStart : ''
+            def currentYear = pv.hasProperty('CurrentYear') ? pv.CurrentYear : ''
+            
+            // Get company name dynamically - only include if available
+            def footerCompanyName = companyName
+            if (!footerCompanyName && pv.hasProperty('CompanyName')) {
+                footerCompanyName = pv.CompanyName
+            }
+            
+            // Only generate footer if we have company name
+            if (footerCompanyName && !footerCompanyName.isEmpty()) {
+                return "<span>Copyright &copy; ${startYear}-${currentYear} ${footerCompanyName}</span>"
+            }
+        }
+        return ""
     }
 }
 

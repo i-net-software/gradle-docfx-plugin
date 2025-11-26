@@ -14,7 +14,7 @@ repositories {
     mavenCentral()
 }
 
-description 'Gradle plugin for DocFX documentation generation.'
+description = 'Gradle plugin for DocFX documentation generation.'
 
 dependencies {
     implementation gradleApi()
