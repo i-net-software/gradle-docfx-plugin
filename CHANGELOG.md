@@ -13,11 +13,14 @@
 * Updated `isDocfxNativelySupported()` and `isDocfxInPath()` to check `~/.dotnet/tools/docfx` location
 
 ### Changed
-* **BREAKING**: Extension renamed from `docfx` to `docfxConfig` to avoid conflict with task name
+* **BREAKING**: Extension renamed from `docfx` to `docfxConfig` to avoid conflict with task names
   * Use `docfxConfig { }` to configure extension properties
-* **BREAKING**: Main task renamed from `docfx` to `docFx` to match build script conventions
-  * Use `docFx { }` to configure the task
-  * This prevents ambiguity and allows clean closure syntax
+* **BREAKING**: All tasks renamed to follow consistent `docFx` prefix naming schema (capital F):
+  * `info` → `docFxInfo` - Displays DocFX version information
+  * `docfx` → `docFx` - Generates documentation (main task)
+  * `docfxClean` → `docFxClean` - Cleans generated documentation files
+  * `docfxZip` → `docFxZip` - Packages documentation into zip file
+  * This provides consistent naming with capital F and prevents conflicts
 * `isDocfxInPath()` now returns the actual path to docfx when found (supports both PATH and `~/.dotnet/tools`)
 * Plugin uses full path to `~/.dotnet/tools/docfx` when found there, ensuring correct execution
 * Plugin follows convention-over-configuration principle for dependency management

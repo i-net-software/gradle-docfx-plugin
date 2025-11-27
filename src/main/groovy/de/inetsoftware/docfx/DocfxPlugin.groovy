@@ -7,14 +7,14 @@ import org.gradle.api.tasks.bundling.Zip
 class DocfxPlugin implements Plugin<Project> {
 
     private static final String DOCFX_CONFIG_EXTENSION  = "docfxConfig"
-    private static final String INFO_TASK               = "info"
-    private static final String CLEAN_TASK              = "docfxClean"
+    private static final String INFO_TASK               = "docFxInfo"
+    private static final String CLEAN_TASK              = "docFxClean"
     private static final String DOCS_TASK               = "docFx"
-    private static final String DOCFX_ZIP_TASK          = "docfxZip"
+    private static final String DOCFX_ZIP_TASK          = "docFxZip"
 
     @Override
     void apply(Project project) {
-        // Use 'docfxConfig' as extension name to avoid conflict with 'docFx' task
+        // Use 'docfxConfig' as extension name to avoid conflict with task names
         final DocfxExtension extension = project.extensions.create(DOCFX_CONFIG_EXTENSION, DocfxExtension)
         // Set project reference for accessing project properties
         extension.project = project
@@ -24,7 +24,7 @@ class DocfxPlugin implements Plugin<Project> {
             task.extension = extension
         }
 
-        // Create docfxClean task (renamed from 'clean' to avoid conflict with Gradle's standard clean task)
+        // Create docFxClean task (renamed from 'clean' to avoid conflict with Gradle's standard clean task)
         def cleanTask = project.tasks.create(CLEAN_TASK, Clean) { task ->
             task.extension = extension
             task.dependsOn(infoTask)
@@ -97,12 +97,12 @@ class DocfxPlugin implements Plugin<Project> {
         // Make docs task finalized by zip task
         docsTask.finalizedBy(zipTask)
         
-        // After evaluation, find any custom Docs tasks and make docfxZip depend on them
-        // This allows build scripts to create custom Docs tasks and have them work with docfxZip
+        // After evaluation, find any custom Docs tasks and make docFxZip depend on them
+        // This allows build scripts to create custom Docs tasks and have them work with docFxZip
         project.afterEvaluate {
             project.tasks.withType(Docs).each { docsTaskInstance ->
                 if (docsTaskInstance != docsTask && docsTaskInstance.name != DOCS_TASK) {
-                    // Found a custom Docs task - make docfxZip depend on it
+                    // Found a custom Docs task - make docFxZip depend on it
                     zipTask.dependsOn(docsTaskInstance)
                     // Also make the custom task finalized by zip
                     docsTaskInstance.finalizedBy(zipTask)

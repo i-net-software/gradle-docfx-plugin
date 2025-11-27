@@ -82,10 +82,10 @@ docfxConfig {
 
 The plugin provides the following tasks:
 
-- **`info`** - Displays DocFX version information
-- **`docfxClean`** - Cleans generated documentation files (metadata and build output)
-- **`docFx`** - Generates documentation (runs `info` first, then `metadata` and `build`)
-- **`docfxZip`** - Packages the generated documentation into a zip file (automatically runs after `docFx`)
+- **`docFxInfo`** - Displays DocFX version information
+- **`docFxClean`** - Cleans generated documentation files (metadata and build output)
+- **`docFx`** - Generates documentation (runs `docFxInfo` first, then `metadata` and `build`)
+- **`docFxZip`** - Packages the generated documentation into a zip file (automatically runs after `docFx`)
 
 ### DocFX Installation
 
@@ -156,10 +156,10 @@ docfxConfig {
 }
 
 // The docFx task will:
-// 1. Run 'info' to check DocFX version
+// 1. Run 'docFxInfo' to check DocFX version
 // 2. Run 'metadata' to extract API documentation
 // 3. Run 'build' to generate the final documentation site
-// The docfxZip task will automatically package the output
+// The docFxZip task will automatically package the output
 ```
 
 #### Auto-Generate docfx.json from Source File
