@@ -60,7 +60,7 @@ buildscript {
 
 apply plugin: 'de.inetsoftware.docfx'
 
-docfxConfig {
+docFxConfig {
     source = 'docfx.json'
     docsHome = '/path/to/docfx'  // Optional: defaults to DOCFX_HOME environment variable
 }
@@ -73,7 +73,7 @@ plugins {
     id 'de.inetsoftware.docfx' version '0.0.7'
 }
 
-docfxConfig {
+docFxConfig {
     source = 'docfx.json'
 }
 ```
@@ -112,12 +112,12 @@ import de.inetsoftware.docfx.DocfxExtension
 if (!DocfxExtension.isDocfxNativelySupported()) {
     // DocFX is not in PATH, download and extract zip version
     // ... your download/extract logic here
-    docfxConfig {
+    docFxConfig {
         docsHome = '/path/to/extracted/docfx'
     }
 } else {
     // DocFX is available in PATH, plugin will use it automatically
-    docfxConfig {
+    docFxConfig {
         source = 'docfx.json'
         // docsHome not needed - will use PATH version
     }
@@ -126,7 +126,7 @@ if (!DocfxExtension.isDocfxNativelySupported()) {
 
 ### Configuration
 
-The `docfxConfig` extension supports the following properties:
+The `docFxConfig` extension supports the following properties:
 
 - **`source`** (String) - Path to the `docfx.json` configuration file or source file (e.g., `.dll`, `.csproj`). If not a `.json` file, the plugin will auto-generate `docfx.json` (required)
 - **`docsHome`** (String) - Path to DocFX installation directory (optional, defaults to `DOCFX_HOME` environment variable). The plugin will prefer `docfx` from PATH if available, even if `docsHome` is set
@@ -150,7 +150,7 @@ The `docfxConfig` extension supports the following properties:
 #### Basic Usage
 
 ```groovy
-docfxConfig {
+docFxConfig {
     source = 'docfx.json'  // Use existing docfx.json
     docsHome = '/opt/docfx'  // Optional
 }
@@ -165,7 +165,7 @@ docfxConfig {
 #### Auto-Generate docfx.json from Source File
 
 ```groovy
-docfxConfig {
+docFxConfig {
     source = 'path/to/MyAssembly.dll'  // Plugin will auto-generate docfx.json
     title = 'My API Documentation'
     locale = 'en-US'
@@ -183,7 +183,7 @@ docfxConfig {
 #### With Locale and Environment Variables
 
 ```groovy
-docfxConfig {
+docFxConfig {
     source = 'docfx.json'
     locale = 'de-DE'  // Automatically sets LC_ALL, LANG, LC_CTYPE
     environment = [
@@ -195,7 +195,7 @@ docfxConfig {
 #### With Additional Resources
 
 ```groovy
-docfxConfig {
+docFxConfig {
     source = 'docfx.json'
     additionalResources = { root ->
         // Copy additional files into the docfx working directory

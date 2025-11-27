@@ -13,8 +13,10 @@
 * Updated `isDocfxNativelySupported()` and `isDocfxInPath()` to check `~/.dotnet/tools/docfx` location
 
 ### Changed
-* **BREAKING**: Extension renamed from `docfx` to `docfxConfig` to avoid conflict with task names
-  * Use `docfxConfig { }` to configure extension properties
+* **BREAKING**: Extension renamed from `docfx` to `docFxConfig` to match naming convention (capital F)
+  * Use `docFxConfig { }` to configure extension properties
+* **BREAKING**: Plugin class renamed from `DocfxPlugin` to `DocFxPlugin` for consistency
+  * Update `apply plugin: de.inetsoftware.docfx.DocfxPlugin` to `de.inetsoftware.docfx.DocFxPlugin`
 * **BREAKING**: All tasks renamed to follow consistent `docFx` prefix naming schema (capital F):
   * `info` → `docFxInfo` - Displays DocFX version information
   * `docfx` → `docFx` - Generates documentation (main task)

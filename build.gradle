@@ -44,7 +44,7 @@ gradlePlugin {
     plugins {
         docfxPlugin {
             id = 'de.inetsoftware.docfx'
-            implementationClass = 'de.inetsoftware.docfx.DocfxPlugin'
+            implementationClass = 'de.inetsoftware.docfx.DocFxPlugin'
             displayName = 'Gradle DocFX Plugin'
             description = 'Gradle plugin for DocFX documentation generation.'
             tags.set(['docfx', 'documentation', 'dotnet'])

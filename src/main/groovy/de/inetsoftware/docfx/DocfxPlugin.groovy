@@ -4,9 +4,9 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.bundling.Zip
 
-class DocfxPlugin implements Plugin<Project> {
+class DocFxPlugin implements Plugin<Project> {
 
-    private static final String DOCFX_CONFIG_EXTENSION  = "docfxConfig"
+    private static final String DOCFX_CONFIG_EXTENSION  = "docFxConfig"
     private static final String INFO_TASK               = "docFxInfo"
     private static final String CLEAN_TASK              = "docFxClean"
     private static final String DOCS_TASK               = "docFx"
