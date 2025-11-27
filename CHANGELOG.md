@@ -1,5 +1,24 @@
 # gradle-docfx-plugin changelog
 
+## 0.0.8
+
+### Added
+* **Native DocFX support**: Plugin now automatically detects and uses DocFX installed via `dotnet tool install -g docfx` when available in PATH
+* Added `DocfxExtension.isDocfxNativelySupported()` static method to check if DocFX is available in PATH from Gradle scripts
+* Plugin prefers native DocFX installation over extracted zip files to avoid architecture compatibility issues
+
+### Fixed
+* Fixed DocFX execution on Linux/macOS by detecting and using correct executable format (docfx.exe, docfx.dll, or native docfx)
+* Fixed `docfx.runtimeconfig.json` handling to remove `includedFrameworks` and add `framework` dependency for framework-dependent execution
+* Added automatic .NET runtime version detection - plugin now detects installed .NET versions and uses appropriate framework version
+* Fixed filter property handling - empty or null filter strings are now properly omitted from `docfx.json` (prevents FileNotFoundException)
+* Improved executable detection logic to check `docfx.deps.json` to determine which file format to use
+
+### Changed
+* Default `filter` property changed from empty string `""` to `null` - empty strings are now converted to `null` to prevent DocFX from trying to load non-existent filter files
+* Plugin now checks PATH for `docfx` command before falling back to `docsHome` directory
+* Updated README with documentation for native DocFX installation method
+
 ## 0.0.7
 
 ### Changed

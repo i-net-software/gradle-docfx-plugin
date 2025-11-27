@@ -10,7 +10,7 @@ class DocfxExtension {
     String docsHome
     String source
     String locale
-    String filter = ""
+    String filter = null  // Optional: path to filter config file (e.g., "filterConfig.yml"). If null or empty, no filter is applied.
     String title = "API Documentation"
     Map<String, String> environment = [:]
     Closure additionalResources = null

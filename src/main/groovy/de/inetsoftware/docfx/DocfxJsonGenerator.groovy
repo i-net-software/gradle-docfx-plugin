@@ -36,6 +36,12 @@ class DocfxJsonGenerator {
         def locale = extension.getLocaleForMetadata()
         def appFooter = extension.getAppFooterForMetadata()
         
+        // Only include filter if it's set and not empty
+        def filterProperty = ""
+        if (extension.filter != null && !extension.filter.trim().isEmpty()) {
+            filterProperty = ",\n      \"filter\": \"${extension.filter}\""
+        }
+        
         def jsonContent = """\
 {
   "metadata": [
@@ -46,8 +52,7 @@ class DocfxJsonGenerator {
           "src": "${srcDir}"
         }
       ],
-      "dest": "${extension.metadataDest}",
-      "filter": "${extension.filter ?: ""}"
+      "dest": "${extension.metadataDest}"${filterProperty}
     }
   ],
   "build": {
