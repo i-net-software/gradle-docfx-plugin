@@ -42,55 +42,84 @@ class DocFxPlugin implements Plugin<Project> {
             task.description = "Packages the generated DocFX documentation into a zip file"
             task.dependsOn(docsTask)
             
+            // Use onlyIf to allow task to run even if source is not set yet
+            // (source might be set in another task's doLast, e.g., msbuild.doLast)
+            // Actual checks happen in doFirst after dependencies have run
+            task.onlyIf {
+                // Always allow the task to run - we'll check conditions in doFirst
+                // This handles the case where source is set in another task's doLast
+                return true
+            }
+            
             task.doFirst {
+                project.logger.quiet("docFxZip: Starting zip task")
+                
+                // Check source from extension first, then from docFx task (in case it was set on the task)
+                def source = extension.source
+                if ((source == null || source.trim().isEmpty()) && docsTask.hasProperty('source')) {
+                    source = docsTask.source
+                }
+                
+                project.logger.quiet("docFxZip: checking conditions, extension.source=${extension.source}, docFx.source=${docsTask.hasProperty('source') ? docsTask.source : 'N/A'}, resolved source=${source}")
+                
+                if (source == null || source.trim().isEmpty()) {
+                    throw new org.gradle.api.tasks.StopExecutionException("docFxZip SKIPPED: source is not set (null or empty) - docFx task may not have source configured. Make sure docFx.source is set before docFxZip runs.")
+                }
+                
                 // Determine the output directory from the docfx.json source
-                if (extension.source != null && !extension.source.isEmpty()) {
-                    def sourceFile = project.file(extension.source)
-                    if (sourceFile.exists()) {
-                        def sourceDir = sourceFile.parentFile
-                        def siteDir = new File(sourceDir, "_site")
-                        
-                        if (siteDir.exists()) {
-                            task.from(siteDir) {
-                                into "/"
-                            }
-                            task.destinationDirectory = project.file("${project.buildDir}/distributions")
-                            task.archiveClassifier = "docfx"
-                            
-                            // Set archive base name from source file name
-                            def baseName = sourceFile.name
-                            if (baseName.endsWith('.json')) {
-                                baseName = baseName.substring(0, baseName.length() - 5)
-                            }
-                            
-                            // Set archiveBaseName (works for both Gradle 8 and 9)
-                            // In Gradle 8, archiveBaseName is a property
-                            // In Gradle 9+, archiveBaseName is a Property<String>
-                            try {
-                                if (task.hasProperty('archiveBaseName')) {
-                                    def prop = task.archiveBaseName
-                                    if (prop instanceof org.gradle.api.provider.Property) {
-                                        // Gradle 9+ - Property API
-                                        if (!prop.isPresent() || prop.get() == project.name) {
-                                            prop.set(baseName)
-                                        }
-                                    } else {
-                                        // Gradle 8 - direct property
-                                        if (prop == null || prop == project.name) {
-                                            task.archiveBaseName = baseName
-                                        }
-                                    }
-                                }
-                            } catch (Exception e) {
-                                project.logger.debug("Could not set archiveBaseName: ${e.message}")
+                def sourceFile = project.file(source)
+                project.logger.quiet("docFxZip: checking source file: ${sourceFile.absolutePath}, exists=${sourceFile.exists()}")
+                
+                if (!sourceFile.exists()) {
+                    throw new org.gradle.api.tasks.StopExecutionException("docFxZip SKIPPED: source file does not exist: ${sourceFile.absolutePath}")
+                }
+                
+                def sourceDir = sourceFile.parentFile
+                def siteDir = new File(sourceDir, "_site")
+                project.logger.quiet("docFxZip: checking _site directory: ${siteDir.absolutePath}, exists=${siteDir.exists()}")
+                
+                if (!siteDir.exists()) {
+                    throw new org.gradle.api.tasks.StopExecutionException("docFxZip SKIPPED: _site directory does not exist at ${siteDir.absolutePath} (docFx task may not have run successfully)")
+                }
+                
+                project.logger.quiet("docFxZip: ALL CONDITIONS MET - zipping _site directory from ${siteDir.absolutePath}")
+                task.from(siteDir) {
+                    into "/"
+                }
+                task.destinationDirectory = project.file("${project.buildDir}/distributions")
+                task.archiveClassifier = "docfx"
+                
+                // Set archive base name from source file name
+                def baseName = sourceFile.name
+                if (baseName.endsWith('.json')) {
+                    baseName = baseName.substring(0, baseName.length() - 5)
+                }
+                
+                // Set archiveBaseName (works for both Gradle 8 and 9)
+                // In Gradle 8, archiveBaseName is a property
+                // In Gradle 9+, archiveBaseName is a Property<String>
+                try {
+                    if (task.hasProperty('archiveBaseName')) {
+                        def prop = task.archiveBaseName
+                        if (prop instanceof org.gradle.api.provider.Property) {
+                            // Gradle 9+ - Property API
+                            if (!prop.isPresent() || prop.get() == project.name) {
+                                prop.set(baseName)
                             }
                         } else {
-                            project.logger.warn("DocFX output directory '_site' not found at ${siteDir}. Zip task may be empty.")
+                            // Gradle 8 - direct property
+                            if (prop == null || prop == project.name) {
+                                task.archiveBaseName = baseName
+                            }
                         }
                     }
-                } else {
-                    project.logger.warn("DocFX source not set. Zip task will be empty.")
+                } catch (Exception e) {
+                    project.logger.debug("Could not set archiveBaseName: ${e.message}")
                 }
+            }
+            
+            task.doLast {
+                project.logger.quiet("docFxZip: Completed zip task")
             }
         }
 
@@ -118,4 +147,3 @@ class DocFxPlugin implements Plugin<Project> {
         }
     }
 }
-

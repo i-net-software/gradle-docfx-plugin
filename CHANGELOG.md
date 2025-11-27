@@ -6,11 +6,20 @@
 * **Auto-configure dependencies**: Plugin now automatically detects custom Docs tasks and makes docfxZip depend on them
 * Plugin automatically hooks docfxZip into preparePublish task if it exists
 * Removes need for build scripts to manually configure dependencies
+* **Delegated properties on tasks**: Tasks now support setting extension properties directly (e.g., `docFx.source = '...'`, `docFx.title = '...'`)
+  * Properties available: `source`, `docsHome`, `locale`, `filter`, `title`, `companyName`, `companyUrl`, `environment`, `additionalResources`
+  * This provides seamless access to extension properties from build scripts
 
 ### Fixed
 * Fixed DocFX detection to check `~/.dotnet/tools/docfx` as fallback when `docfx` is not in PATH
 * Plugin now correctly finds DocFX installed via `dotnet tool install -g docfx` even when `~/.dotnet/tools` is not in PATH
 * Updated `isDocfxNativelySupported()` and `isDocfxInPath()` to check `~/.dotnet/tools/docfx` location
+* **Fixed docFxZip task timing issue**: Task now checks for `source` in `doFirst` instead of `onlyIf` to handle cases where `source` is set in another task's `doLast` (e.g., `msbuild.doLast`)
+  * Task will now properly detect source set dynamically during build execution
+  * Added detailed logging to help diagnose issues with source detection
+* **Fixed docFxInfo task**: Task now handles missing `docfx` command gracefully instead of failing the build
+  * Logs a warning and continues execution when `docfx` is not available
+  * Allows build scripts to download/install DocFX without blocking the build
 
 ### Changed
 * **BREAKING**: Extension renamed from `docfx` to `docFxConfig` to match naming convention (capital F)

@@ -42,7 +42,7 @@ gradlePlugin {
     vcsUrl = 'https://github.com/i-net-software/gradle-docfx-plugin'
     
     plugins {
-        docfxPlugin {
+        docFxPlugin {
             id = 'de.inetsoftware.docfx'
             implementationClass = 'de.inetsoftware.docfx.DocFxPlugin'
             displayName = 'Gradle DocFX Plugin'
