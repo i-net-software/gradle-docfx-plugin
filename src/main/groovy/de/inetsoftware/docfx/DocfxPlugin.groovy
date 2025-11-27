@@ -6,14 +6,16 @@ import org.gradle.api.tasks.bundling.Zip
 
 class DocfxPlugin implements Plugin<Project> {
 
-    private static final String INFO_TASK = "info"
-    private static final String CLEAN_TASK = "docfxClean"
-    private static final String DOCS_TASK = "docfx"
-    private static final String DOCFX_ZIP_TASK = "docfxZip"
+    private static final String DOCFX_CONFIG_EXTENSION  = "docfxConfig"
+    private static final String INFO_TASK               = "info"
+    private static final String CLEAN_TASK              = "docfxClean"
+    private static final String DOCS_TASK               = "docfx"
+    private static final String DOCFX_ZIP_TASK          = "docfxZip"
 
     @Override
     void apply(Project project) {
-        final DocfxExtension extension = project.extensions.create("docfx", DocfxExtension)
+        // Use 'docfxConfig' as extension name to avoid conflict with 'docfx' task
+        final DocfxExtension extension = project.extensions.create(DOCFX_CONFIG_EXTENSION, DocfxExtension)
         // Set project reference for accessing project properties
         extension.project = project
 
