@@ -9,12 +9,12 @@ class DocfxPlugin implements Plugin<Project> {
     private static final String DOCFX_CONFIG_EXTENSION  = "docfxConfig"
     private static final String INFO_TASK               = "info"
     private static final String CLEAN_TASK              = "docfxClean"
-    private static final String DOCS_TASK               = "docfx"
+    private static final String DOCS_TASK               = "docFx"
     private static final String DOCFX_ZIP_TASK          = "docfxZip"
 
     @Override
     void apply(Project project) {
-        // Use 'docfxConfig' as extension name to avoid conflict with 'docfx' task
+        // Use 'docfxConfig' as extension name to avoid conflict with 'docFx' task
         final DocfxExtension extension = project.extensions.create(DOCFX_CONFIG_EXTENSION, DocfxExtension)
         // Set project reference for accessing project properties
         extension.project = project
@@ -98,7 +98,7 @@ class DocfxPlugin implements Plugin<Project> {
         docsTask.finalizedBy(zipTask)
         
         // After evaluation, find any custom Docs tasks and make docfxZip depend on them
-        // This allows build scripts to create custom Docs tasks (like 'docFx') and have them work with docfxZip
+        // This allows build scripts to create custom Docs tasks and have them work with docfxZip
         project.afterEvaluate {
             project.tasks.withType(Docs).each { docsTaskInstance ->
                 if (docsTaskInstance != docsTask && docsTaskInstance.name != DOCS_TASK) {

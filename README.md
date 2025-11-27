@@ -60,7 +60,7 @@ buildscript {
 
 apply plugin: 'de.inetsoftware.docfx'
 
-docfx {
+docfxConfig {
     source = 'docfx.json'
     docsHome = '/path/to/docfx'  // Optional: defaults to DOCFX_HOME environment variable
 }
@@ -73,7 +73,7 @@ plugins {
     id 'de.inetsoftware.docfx' version '0.0.7'
 }
 
-docfx {
+docfxConfig {
     source = 'docfx.json'
 }
 ```
@@ -84,8 +84,8 @@ The plugin provides the following tasks:
 
 - **`info`** - Displays DocFX version information
 - **`docfxClean`** - Cleans generated documentation files (metadata and build output)
-- **`docs`** - Generates documentation (runs `info` first, then `metadata` and `build`)
-- **`docfxZip`** - Packages the generated documentation into a zip file (automatically runs after `docs`)
+- **`docFx`** - Generates documentation (runs `info` first, then `metadata` and `build`)
+- **`docfxZip`** - Packages the generated documentation into a zip file (automatically runs after `docFx`)
 
 ### DocFX Installation
 
@@ -112,12 +112,12 @@ import de.inetsoftware.docfx.DocfxExtension
 if (!DocfxExtension.isDocfxNativelySupported()) {
     // DocFX is not in PATH, download and extract zip version
     // ... your download/extract logic here
-    docfx {
+    docfxConfig {
         docsHome = '/path/to/extracted/docfx'
     }
 } else {
     // DocFX is available in PATH, plugin will use it automatically
-    docfx {
+    docfxConfig {
         source = 'docfx.json'
         // docsHome not needed - will use PATH version
     }
@@ -126,7 +126,7 @@ if (!DocfxExtension.isDocfxNativelySupported()) {
 
 ### Configuration
 
-The `docfx` extension supports the following properties:
+The `docfxConfig` extension supports the following properties:
 
 - **`source`** (String) - Path to the `docfx.json` configuration file or source file (e.g., `.dll`, `.csproj`). If not a `.json` file, the plugin will auto-generate `docfx.json` (required)
 - **`docsHome`** (String) - Path to DocFX installation directory (optional, defaults to `DOCFX_HOME` environment variable). The plugin will prefer `docfx` from PATH if available, even if `docsHome` is set
@@ -150,12 +150,12 @@ The `docfx` extension supports the following properties:
 #### Basic Usage
 
 ```groovy
-docfx {
+docfxConfig {
     source = 'docfx.json'  // Use existing docfx.json
     docsHome = '/opt/docfx'  // Optional
 }
 
-// The docs task will:
+// The docFx task will:
 // 1. Run 'info' to check DocFX version
 // 2. Run 'metadata' to extract API documentation
 // 3. Run 'build' to generate the final documentation site
@@ -165,7 +165,7 @@ docfx {
 #### Auto-Generate docfx.json from Source File
 
 ```groovy
-docfx {
+docfxConfig {
     source = 'path/to/MyAssembly.dll'  // Plugin will auto-generate docfx.json
     title = 'My API Documentation'
     locale = 'en-US'
@@ -183,7 +183,7 @@ docfx {
 #### With Locale and Environment Variables
 
 ```groovy
-docfx {
+docfxConfig {
     source = 'docfx.json'
     locale = 'de-DE'  // Automatically sets LC_ALL, LANG, LC_CTYPE
     environment = [
@@ -195,7 +195,7 @@ docfx {
 #### With Additional Resources
 
 ```groovy
-docfx {
+docfxConfig {
     source = 'docfx.json'
     additionalResources = { root ->
         // Copy additional files into the docfx working directory
