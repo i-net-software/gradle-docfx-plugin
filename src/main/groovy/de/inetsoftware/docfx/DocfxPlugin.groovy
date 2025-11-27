@@ -8,7 +8,7 @@ class DocfxPlugin implements Plugin<Project> {
 
     private static final String INFO_TASK = "info"
     private static final String CLEAN_TASK = "docfxClean"
-    private static final String DOCS_TASK = "docs"
+    private static final String DOCS_TASK = "docfx"
     private static final String DOCFX_ZIP_TASK = "docfxZip"
 
     @Override
