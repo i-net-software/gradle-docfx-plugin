@@ -2,6 +2,11 @@
 
 ## 0.0.9-SNAPSHOT
 
+### Added
+* **Auto-configure dependencies**: Plugin now automatically detects custom Docs tasks and makes docfxZip depend on them
+* Plugin automatically hooks docfxZip into preparePublish task if it exists
+* Removes need for build scripts to manually configure dependencies
+
 ### Fixed
 * Fixed DocFX detection to check `~/.dotnet/tools/docfx` as fallback when `docfx` is not in PATH
 * Plugin now correctly finds DocFX installed via `dotnet tool install -g docfx` even when `~/.dotnet/tools` is not in PATH
@@ -10,6 +15,7 @@
 ### Changed
 * `isDocfxInPath()` now returns the actual path to docfx when found (supports both PATH and `~/.dotnet/tools`)
 * Plugin uses full path to `~/.dotnet/tools/docfx` when found there, ensuring correct execution
+* Plugin follows convention-over-configuration principle for dependency management
 
 ## 0.0.8
 
