@@ -1,5 +1,16 @@
 # gradle-docfx-plugin changelog
 
+## 0.0.9-SNAPSHOT
+
+### Fixed
+* Fixed DocFX detection to check `~/.dotnet/tools/docfx` as fallback when `docfx` is not in PATH
+* Plugin now correctly finds DocFX installed via `dotnet tool install -g docfx` even when `~/.dotnet/tools` is not in PATH
+* Updated `isDocfxNativelySupported()` and `isDocfxInPath()` to check `~/.dotnet/tools/docfx` location
+
+### Changed
+* `isDocfxInPath()` now returns the actual path to docfx when found (supports both PATH and `~/.dotnet/tools`)
+* Plugin uses full path to `~/.dotnet/tools/docfx` when found there, ensuring correct execution
+
 ## 0.0.8
 
 ### Added

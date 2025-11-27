@@ -113,20 +113,52 @@ class Docs extends DocfxDefaultTask {
     }
     
     /**
-     * Check if 'docfx' command is available in PATH.
+     * Check if 'docfx' command is available in PATH or in ~/.dotnet/tools.
+     * Returns the path to docfx if found, or null if not found.
      * This indicates it was installed via 'dotnet tool install -g docfx'.
      */
-    private boolean isDocfxInPath() {
+    private String findDocfxInPath() {
+        // First try PATH
         try {
             def process = new ProcessBuilder("docfx", "--version")
                 .redirectErrorStream(true)
                 .redirectOutput(ProcessBuilder.Redirect.DISCARD)
                 .start()
             def exitCode = process.waitFor()
-            return exitCode == 0
+            if (exitCode == 0) {
+                return "docfx"  // Found in PATH
+            }
         } catch (Exception e) {
-            return false
+            // Continue to fallback
         }
+        
+        // Fallback: check ~/.dotnet/tools/docfx (common location for dotnet tools)
+        try {
+            def homeDir = System.getProperty("user.home")
+            def dotnetToolsDocfx = new File(homeDir, ".dotnet/tools/docfx")
+            if (dotnetToolsDocfx.exists() && dotnetToolsDocfx.canExecute()) {
+                def process = new ProcessBuilder(dotnetToolsDocfx.absolutePath, "--version")
+                    .redirectErrorStream(true)
+                    .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                    .start()
+                def exitCode = process.waitFor()
+                if (exitCode == 0) {
+                    return dotnetToolsDocfx.absolutePath  // Found in ~/.dotnet/tools
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        
+        return null  // Not found
+    }
+    
+    /**
+     * Check if 'docfx' command is available in PATH or in ~/.dotnet/tools.
+     * This is a convenience method that returns boolean.
+     */
+    private boolean isDocfxInPath() {
+        return findDocfxInPath() != null
     }
     
     /**
@@ -144,12 +176,17 @@ class Docs extends DocfxDefaultTask {
         def args = []
         def workingDir = null
         
-        // Priority 0: Check if 'docfx' is available in PATH (from 'dotnet tool install -g docfx')
+        // Priority 0: Check if 'docfx' is available in PATH or ~/.dotnet/tools (from 'dotnet tool install -g docfx')
         // This is the preferred method as it installs the correct platform-specific version
         // Always prefer PATH version over extracted zip, even if docsHome is set
-        if (isDocfxInPath()) {
-            LOGGER.quiet("Using 'docfx' from PATH (installed via 'dotnet tool install -g docfx')")
-            return [executable: "docfx", args: args]
+        def docfxPath = findDocfxInPath()
+        if (docfxPath != null) {
+            if (docfxPath == "docfx") {
+                LOGGER.quiet("Using 'docfx' from PATH (installed via 'dotnet tool install -g docfx')")
+            } else {
+                LOGGER.quiet("Using 'docfx' from ${docfxPath} (installed via 'dotnet tool install -g docfx')")
+            }
+            return [executable: docfxPath, args: args]
         }
         
         // If docsHome is null and docfx is not in PATH, try using 'docfx' anyway (might be in PATH but check failed)

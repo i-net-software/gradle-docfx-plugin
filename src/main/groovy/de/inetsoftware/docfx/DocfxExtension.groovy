@@ -37,7 +37,7 @@ class DocfxExtension {
 
     /**
      * Check if DocFX is natively supported on the current platform.
-     * Returns true if 'docfx' command is available in PATH (installed via 'dotnet tool install -g docfx').
+     * Returns true if 'docfx' command is available in PATH or ~/.dotnet/tools (installed via 'dotnet tool install -g docfx').
      * This method can be called from Gradle scripts to conditionally download DocFX zip if needed.
      * 
      * Usage in Gradle script:
@@ -47,19 +47,40 @@ class DocfxExtension {
      * }
      * </pre>
      * 
-     * @return true if 'docfx' is available in PATH, false otherwise
+     * @return true if 'docfx' is available in PATH or ~/.dotnet/tools, false otherwise
      */
     static boolean isDocfxNativelySupported() {
+        // First try PATH
         try {
             def process = new ProcessBuilder("docfx", "--version")
                 .redirectErrorStream(true)
                 .redirectOutput(ProcessBuilder.Redirect.DISCARD)
                 .start()
             def exitCode = process.waitFor()
-            return exitCode == 0
+            if (exitCode == 0) {
+                return true
+            }
         } catch (Exception e) {
-            return false
+            // Continue to fallback
         }
+        
+        // Fallback: check ~/.dotnet/tools/docfx (common location for dotnet tools)
+        try {
+            def homeDir = System.getProperty("user.home")
+            def dotnetToolsDocfx = new File(homeDir, ".dotnet/tools/docfx")
+            if (dotnetToolsDocfx.exists() && dotnetToolsDocfx.canExecute()) {
+                def process = new ProcessBuilder(dotnetToolsDocfx.absolutePath, "--version")
+                    .redirectErrorStream(true)
+                    .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                    .start()
+                def exitCode = process.waitFor()
+                return exitCode == 0
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        
+        return false
     }
 
     String getDocsExecutable() {
