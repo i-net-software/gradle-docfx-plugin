@@ -113,8 +113,30 @@ class Docs extends DocfxDefaultTask {
     }
     
     /**
+     * Check if 'docfx' command is available in PATH.
+     * This indicates it was installed via 'dotnet tool install -g docfx'.
+     */
+    private boolean isDocfxInPath() {
+        try {
+            def process = new ProcessBuilder("docfx", "--version")
+                .redirectErrorStream(true)
+                .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                .start()
+            def exitCode = process.waitFor()
+            return exitCode == 0
+        } catch (Exception e) {
+            return false
+        }
+    }
+    
+    /**
      * Get executable information for DocFX.
-     * On Linux/macOS, if docfx.dll exists, use 'dotnet docfx.dll', otherwise use the executable directly.
+     * Priority order:
+     * 1. Check if 'docfx' is available in PATH (installed via 'dotnet tool install -g docfx')
+     * 2. On Linux/macOS, check extracted zip directory:
+     *    - Native executable (docfx)
+     *    - .exe file (docfx.exe) - .NET can run .exe on Linux
+     *    - .dll file (docfx.dll) with 'dotnet docfx.dll'
      * Returns a map with: executable, args, and optionally workingDir.
      */
     private Map<String, Object> getExecutableInfo() {
@@ -122,27 +144,93 @@ class Docs extends DocfxDefaultTask {
         def args = []
         def workingDir = null
         
-        // On non-Windows, check if we need to use 'dotnet docfx.dll'
+        // Priority 0: Check if 'docfx' is available in PATH (from 'dotnet tool install -g docfx')
+        // This is the preferred method as it installs the correct platform-specific version
+        // Always prefer PATH version over extracted zip, even if docsHome is set
+        if (isDocfxInPath()) {
+            LOGGER.quiet("Using 'docfx' from PATH (installed via 'dotnet tool install -g docfx')")
+            return [executable: "docfx", args: args]
+        }
+        
+        // If docsHome is null and docfx is not in PATH, try using 'docfx' anyway (might be in PATH but check failed)
+        if (extension.docsHome == null) {
+            LOGGER.debug("docsHome is not set and 'docfx' not found in PATH, trying 'docfx' command anyway")
+            return [executable: "docfx", args: args]
+        }
+        
+        // On non-Windows, check what executable format is available in docsHome
         if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
             def executableFile = project.file(executable)
-            def docfxDll = new File(executableFile.parentFile, "docfx.dll")
-            def runtimeConfig = new File(executableFile.parentFile, "docfx.runtimeconfig.json")
+            def docfxDir = executableFile.parentFile
+            def docfxExe = new File(docfxDir, "docfx.exe")
+            def docfxDll = new File(docfxDir, "docfx.dll")
+            def depsJson = new File(docfxDir, "docfx.deps.json")
+            def runtimeConfig = new File(docfxDir, "docfx.runtimeconfig.json")
             
-            // If executable doesn't exist or isn't executable, try docfx.dll
-            if (!executableFile.exists() || !executableFile.canExecute()) {
-                if (docfxDll.exists()) {
-                    // Try to fix runtimeconfig.json to make it framework-dependent
-                    if (runtimeConfig.exists()) {
-                        fixRuntimeConfig(runtimeConfig)
+            // Priority 1: Native executable (docfx)
+            if (executableFile.exists() && executableFile.canExecute()) {
+                // Use it directly
+                return [executable: executable, args: args]
+            }
+            
+            // Check deps.json to see which file it expects
+            String expectedFile = null
+            if (depsJson.exists()) {
+                try {
+                    def depsContent = depsJson.text
+                    if (depsContent.contains('"docfx.dll"')) {
+                        expectedFile = "docfx.dll"
+                    } else if (depsContent.contains('"docfx.exe"')) {
+                        expectedFile = "docfx.exe"
                     }
-                    executable = "dotnet"
-                    // Use relative path and set working directory so dotnet can find runtime dependencies
-                    args.add("docfx.dll")
-                    workingDir = docfxDll.parentFile
-                    LOGGER.quiet("Using 'dotnet docfx.dll' for DocFX execution from ${workingDir}")
+                } catch (Exception e) {
+                    LOGGER.debug("Could not parse deps.json: ${e.message}")
                 }
             }
-            // If executable exists and is executable, use it directly (don't second-guess)
+            
+            // Priority 2: Use the file specified in deps.json (if both exist, prefer what deps.json says)
+            if (expectedFile == "docfx.dll" && docfxDll.exists()) {
+                // Try to fix runtimeconfig.json to make it framework-dependent
+                if (runtimeConfig.exists()) {
+                    fixRuntimeConfig(runtimeConfig)
+                }
+                executable = "dotnet"
+                args.add("docfx.dll")
+                workingDir = docfxDir
+                LOGGER.quiet("Using 'dotnet docfx.dll' for DocFX execution from ${workingDir} (as specified in deps.json)")
+            }
+            else if (expectedFile == "docfx.exe" && docfxExe.exists() && docfxExe.canExecute()) {
+                // Try to fix runtimeconfig.json to make it framework-dependent
+                if (runtimeConfig.exists()) {
+                    fixRuntimeConfig(runtimeConfig)
+                }
+                executable = "dotnet"
+                args.add("docfx.exe")
+                workingDir = docfxDir
+                LOGGER.quiet("Using 'dotnet docfx.exe' for DocFX execution from ${workingDir} (as specified in deps.json)")
+            }
+            // Priority 3: Fallback to .dll if it exists
+            else if (docfxDll.exists()) {
+                // Try to fix runtimeconfig.json to make it framework-dependent
+                if (runtimeConfig.exists()) {
+                    fixRuntimeConfig(runtimeConfig)
+                }
+                executable = "dotnet"
+                args.add("docfx.dll")
+                workingDir = docfxDir
+                LOGGER.quiet("Using 'dotnet docfx.dll' for DocFX execution from ${workingDir}")
+            }
+            // Priority 4: Fallback to .exe if it exists
+            else if (docfxExe.exists() && docfxExe.canExecute()) {
+                // Try to fix runtimeconfig.json to make it framework-dependent
+                if (runtimeConfig.exists()) {
+                    fixRuntimeConfig(runtimeConfig)
+                }
+                executable = "dotnet"
+                args.add("docfx.exe")
+                workingDir = docfxDir
+                LOGGER.quiet("Using 'dotnet docfx.exe' for DocFX execution from ${workingDir}")
+            }
         }
         
         def result = [executable: executable, args: args]
@@ -153,32 +241,110 @@ class Docs extends DocfxDefaultTask {
     }
     
     /**
+     * Detect available .NET Core runtime version.
+     * Returns the highest available version, or "6.0.0" as a safe minimum.
+     */
+    private String detectDotNetFrameworkVersion() {
+        try {
+            // Try to run 'dotnet --list-runtimes' to detect available versions
+            def process = new ProcessBuilder("dotnet", "--list-runtimes")
+                .redirectErrorStream(true)
+                .start()
+            
+            def output = new StringBuilder()
+            process.inputStream.eachLine { line ->
+                output.append(line).append("\n")
+            }
+            process.waitFor()
+            
+            if (process.exitValue() == 0) {
+                // Parse output to find Microsoft.NETCore.App versions
+                def lines = output.toString().split("\n")
+                def versions = []
+                lines.each { line ->
+                    if (line.contains("Microsoft.NETCore.App")) {
+                        // Extract version (format: "Microsoft.NETCore.App 6.0.36 [/usr/lib/dotnet/shared/Microsoft.NETCore.App]")
+                        def matcher = line =~ /Microsoft\.NETCore\.App\s+([\d.]+)/
+                        if (matcher) {
+                            versions.add(matcher[0][1])
+                        }
+                    }
+                }
+                
+                if (!versions.isEmpty()) {
+                    // Sort and return the highest version
+                    versions.sort { a, b ->
+                        def aParts = a.split("\\.").collect { it as Integer }
+                        def bParts = b.split("\\.").collect { it as Integer }
+                        for (int i = 0; i < Math.max(aParts.size(), bParts.size()); i++) {
+                            def aVal = i < aParts.size() ? aParts[i] : 0
+                            def bVal = i < bParts.size() ? bParts[i] : 0
+                            if (aVal != bVal) {
+                                return aVal <=> bVal
+                            }
+                        }
+                        return 0
+                    }
+                    def highestVersion = versions.last()
+                    LOGGER.debug("Detected .NET runtime version: ${highestVersion}")
+                    // Return major.minor.0 format (e.g., 6.0.0, 7.0.0)
+                    def parts = highestVersion.split("\\.")
+                    return "${parts[0]}.${parts[1]}.0"
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.debug("Could not detect .NET runtime version: ${e.message}")
+        }
+        
+        // Fallback to 6.0.0 as a safe minimum (widely available)
+        return "6.0.0"
+    }
+    
+    /**
      * Fix docfx.runtimeconfig.json to make it framework-dependent instead of self-contained.
      * This allows dotnet to use the installed .NET runtime instead of requiring all runtime files.
      */
     private void fixRuntimeConfig(File runtimeConfigFile) {
         try {
             def content = runtimeConfigFile.text
-            // Check if it already has a framework specified
-            if (!content.contains('"framework"') && !content.contains('"frameworks"')) {
-                // Parse and modify the JSON to add framework dependency
-                def json = new groovy.json.JsonSlurper().parseText(content)
-                if (json.runtimeOptions == null) {
-                    json.runtimeOptions = [:]
-                }
-                if (json.runtimeOptions.framework == null) {
-                    // Add a framework dependency - try to use a common one
-                    // DocFX typically targets .NET Core 2.1 or later
-                    json.runtimeOptions.framework = [
-                        name: "Microsoft.NETCore.App",
-                        version: "2.1.0"  // Minimum version, will use latest installed
-                    ]
-                    // Write back the modified JSON
-                    def jsonBuilder = new groovy.json.JsonBuilder(json)
-                    runtimeConfigFile.text = jsonBuilder.toPrettyString()
-                    LOGGER.debug("Modified ${runtimeConfigFile.name} to be framework-dependent")
+            // Parse the JSON
+            def json = new groovy.json.JsonSlurper().parseText(content)
+            
+            // Ensure runtimeOptions exists
+            if (json.runtimeOptions == null) {
+                json.runtimeOptions = [:]
+            }
+            
+            // Always remove includedFrameworks if it exists (it conflicts with framework/frameworks)
+            // Build a new map without includedFrameworks
+            def newRuntimeOptions = [:]
+            json.runtimeOptions.each { key, value ->
+                if (key != 'includedFrameworks') {
+                    newRuntimeOptions[key] = value
                 }
             }
+            
+            // Check if framework already exists (keep it if it does)
+            boolean hasFramework = newRuntimeOptions.framework != null || newRuntimeOptions.frameworks != null
+            
+            // Add framework if it doesn't exist
+            if (!hasFramework) {
+                // Try to detect available .NET runtime version, or use 6.0.0 as minimum
+                def frameworkVersion = detectDotNetFrameworkVersion()
+                newRuntimeOptions.framework = [
+                    name: "Microsoft.NETCore.App",
+                    version: frameworkVersion
+                ]
+                LOGGER.quiet("Added framework dependency to ${runtimeConfigFile.name} (version: ${frameworkVersion})")
+            }
+            
+            // Update the json object with the cleaned runtimeOptions
+            json.runtimeOptions = newRuntimeOptions
+            
+            // Write back the modified JSON
+            def jsonBuilder = new groovy.json.JsonBuilder(json)
+            runtimeConfigFile.text = jsonBuilder.toPrettyString()
+            LOGGER.quiet("Modified ${runtimeConfigFile.name} to be framework-dependent (removed includedFrameworks if present)")
         } catch (Exception e) {
             LOGGER.warn("Could not modify ${runtimeConfigFile.name}: ${e.message}")
         }

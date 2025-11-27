@@ -35,6 +35,33 @@ class DocfxExtension {
         docsHome = System.getenv("DOCFX_HOME")
     }
 
+    /**
+     * Check if DocFX is natively supported on the current platform.
+     * Returns true if 'docfx' command is available in PATH (installed via 'dotnet tool install -g docfx').
+     * This method can be called from Gradle scripts to conditionally download DocFX zip if needed.
+     * 
+     * Usage in Gradle script:
+     * <pre>
+     * if (!de.inetsoftware.docfx.DocfxExtension.isDocfxNativelySupported()) {
+     *     // Download and extract DocFX zip
+     * }
+     * </pre>
+     * 
+     * @return true if 'docfx' is available in PATH, false otherwise
+     */
+    static boolean isDocfxNativelySupported() {
+        try {
+            def process = new ProcessBuilder("docfx", "--version")
+                .redirectErrorStream(true)
+                .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                .start()
+            def exitCode = process.waitFor()
+            return exitCode == 0
+        } catch (Exception e) {
+            return false
+        }
+    }
+
     String getDocsExecutable() {
         String executable = "docfx"
         if (Os.isFamily(Os.FAMILY_WINDOWS)) {

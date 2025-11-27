@@ -87,12 +87,49 @@ The plugin provides the following tasks:
 - **`docs`** - Generates documentation (runs `info` first, then `metadata` and `build`)
 - **`docfxZip`** - Packages the generated documentation into a zip file (automatically runs after `docs`)
 
+### DocFX Installation
+
+**Recommended:** Install DocFX as a global .NET tool (cross-platform, automatically uses correct platform-specific version):
+
+```bash
+dotnet tool install -g docfx
+```
+
+The plugin will automatically detect and use `docfx` from PATH if available. This is the preferred method as it:
+- Installs the correct platform-specific version (Windows/Linux/macOS)
+- Avoids architecture compatibility issues
+- Works seamlessly across different operating systems
+
+**Alternative:** If you have DocFX installed in a specific directory, set the `docsHome` property or `DOCFX_HOME` environment variable.
+
+#### Checking Native Support
+
+You can check if DocFX is natively supported (available in PATH) from your Gradle scripts:
+
+```groovy
+import de.inetsoftware.docfx.DocfxExtension
+
+if (!DocfxExtension.isDocfxNativelySupported()) {
+    // DocFX is not in PATH, download and extract zip version
+    // ... your download/extract logic here
+    docfx {
+        docsHome = '/path/to/extracted/docfx'
+    }
+} else {
+    // DocFX is available in PATH, plugin will use it automatically
+    docfx {
+        source = 'docfx.json'
+        // docsHome not needed - will use PATH version
+    }
+}
+```
+
 ### Configuration
 
 The `docfx` extension supports the following properties:
 
 - **`source`** (String) - Path to the `docfx.json` configuration file or source file (e.g., `.dll`, `.csproj`). If not a `.json` file, the plugin will auto-generate `docfx.json` (required)
-- **`docsHome`** (String) - Path to DocFX installation directory (optional, defaults to `DOCFX_HOME` environment variable)
+- **`docsHome`** (String) - Path to DocFX installation directory (optional, defaults to `DOCFX_HOME` environment variable). The plugin will prefer `docfx` from PATH if available, even if `docsHome` is set
 - **`locale`** (String) - Locale for DocFX execution (e.g., "de-DE"). Automatically sets `LC_ALL`, `LANG`, and `LC_CTYPE` environment variables
 - **`filter`** (String) - Filter string for DocFX metadata generation (optional, default: empty string)
 - **`title`** (String) - Title for documentation (optional, default: "API Documentation")
