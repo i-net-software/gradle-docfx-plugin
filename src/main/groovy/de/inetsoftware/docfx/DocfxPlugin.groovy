@@ -94,6 +94,26 @@ class DocfxPlugin implements Plugin<Project> {
 
         // Make docs task finalized by zip task
         docsTask.finalizedBy(zipTask)
+        
+        // After evaluation, find any custom Docs tasks and make docfxZip depend on them
+        // This allows build scripts to create custom Docs tasks (like 'docFx') and have them work with docfxZip
+        project.afterEvaluate {
+            project.tasks.withType(Docs).each { docsTaskInstance ->
+                if (docsTaskInstance != docsTask && docsTaskInstance.name != DOCS_TASK) {
+                    // Found a custom Docs task - make docfxZip depend on it
+                    zipTask.dependsOn(docsTaskInstance)
+                    // Also make the custom task finalized by zip
+                    docsTaskInstance.finalizedBy(zipTask)
+                }
+            }
+            
+            // Optionally hook into common publishing tasks
+            // Check for preparePublish task (common in build scripts)
+            def preparePublishTask = project.tasks.findByName('preparePublish')
+            if (preparePublishTask != null) {
+                preparePublishTask.dependsOn(zipTask)
+            }
+        }
     }
 }
 
