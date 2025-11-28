@@ -1,6 +1,6 @@
 # gradle-docfx-plugin changelog
 
-## 0.0.9-SNAPSHOT
+## 0.0.9
 
 ### Added
 * **Auto-configure dependencies**: Plugin now automatically detects custom Docs tasks and makes docfxZip depend on them
@@ -14,9 +14,13 @@
 * Fixed DocFX detection to check `~/.dotnet/tools/docfx` as fallback when `docfx` is not in PATH
 * Plugin now correctly finds DocFX installed via `dotnet tool install -g docfx` even when `~/.dotnet/tools` is not in PATH
 * Updated `isDocfxNativelySupported()` and `isDocfxInPath()` to check `~/.dotnet/tools/docfx` location
-* **Fixed docFxZip task timing issue**: Task now checks for `source` in `doFirst` instead of `onlyIf` to handle cases where `source` is set in another task's `doLast` (e.g., `msbuild.doLast`)
-  * Task will now properly detect source set dynamically during build execution
-  * Added detailed logging to help diagnose issues with source detection
+* **Fixed docFxZip task configuration timing**: Moved zip task 'from' configuration to docFx.doLast instead of zipTask.doFirst
+  * This ensures _site directory exists before configuring the zip task
+  * Matches the original approach in docfx.gradle
+  * Proper timing: docFx runs -> docFx.doLast configures zip -> zipTask runs
+* **Fixed docFxZip source detection**: Task now properly gets source from docFx task's extension after docFx runs
+  * Source is correctly detected even when set in msbuild.doLast
+  * Task configuration happens at the right time in the execution lifecycle
 * **Fixed docFxInfo task**: Task now handles missing `docfx` command gracefully instead of failing the build
   * Logs a warning and continues execution when `docfx` is not available
   * Allows build scripts to download/install DocFX without blocking the build
