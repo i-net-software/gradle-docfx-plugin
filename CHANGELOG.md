@@ -1,5 +1,13 @@
 # gradle-docfx-plugin changelog
 
+## 0.1.0
+
+### Fixed
+* **Fixed docFxZip archive naming**: Zip archive now uses the original source file name (e.g., `inetsoftware.Reporting.dll`) instead of the generated `docfx.json` filename
+  * Archive name format: `{originalSourceFileName}-docfx.zip` (e.g., `inetsoftware.Reporting.dll-docfx.zip`)
+  * Users can override by setting `archiveBaseName` on the `docFxZip` task in `build.gradle`
+  * This ensures consistent artifact naming that matches the source assembly
+
 ## 0.0.9
 
 ### Added

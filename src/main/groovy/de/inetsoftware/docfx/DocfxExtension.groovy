@@ -15,6 +15,10 @@ class DocfxExtension {
     Map<String, String> environment = [:]
     Closure additionalResources = null
     
+    // Internal: stores original source file name before it's updated to docfx.json
+    // Used by zip task to name the archive based on original source (e.g., inetsoftware.Reporting.dll)
+    String originalSourceFileName = null
+    
     // DocFX configuration options for auto-generated docfx.json
     String template = "statictoc"
     String markdownEngine = "markdig"

@@ -35,6 +35,11 @@ class Docs extends DocfxDefaultTask {
             return
         }
 
+        // Store original source file name for zip task naming (before we update extension.source)
+        // This allows the zip task to use the original file name (e.g., inetsoftware.Reporting.dll)
+        // instead of the generated docfx.json name
+        extension.originalSourceFileName = sourceFile.name
+
         // Auto-generate docfx.json if source is not a JSON file
         File docfxJsonFile
         if (!extension.isSourceJsonFile()) {

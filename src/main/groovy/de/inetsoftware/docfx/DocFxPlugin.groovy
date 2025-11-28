@@ -82,30 +82,62 @@ class DocFxPlugin implements Plugin<Project> {
                 into "/"
             }
             
-            // Set archive base name from source file name
-            def baseName = sourceFile.name
-            if (baseName.endsWith('.json')) {
-                baseName = baseName.substring(0, baseName.length() - 5)
-            }
+            // Set archive base name from original source file name (if available)
+            // This allows the zip to be named after the original source (e.g., inetsoftware.Reporting.dll)
+            // instead of the generated docfx.json file
+            // User can override this by setting archiveBaseName on docFxZip task in build.gradle
+            def baseName = null
             
-            // Set archiveBaseName (works for both Gradle 8 and 9)
+            // Check if user has already set archiveBaseName
+            def currentBaseName = null
             try {
                 if (zipTask.hasProperty('archiveBaseName')) {
                     def prop = zipTask.archiveBaseName
                     if (prop instanceof org.gradle.api.provider.Property) {
                         // Gradle 9+ - Property API
-                        if (!prop.isPresent() || prop.get() == project.name) {
-                            prop.set(baseName)
+                        if (prop.isPresent()) {
+                            currentBaseName = prop.get()
                         }
                     } else {
                         // Gradle 8 - direct property
-                        if (prop == null || prop == project.name) {
-                            zipTask.archiveBaseName = baseName
-                        }
+                        currentBaseName = prop
                     }
                 }
             } catch (Exception e) {
-                project.logger.debug("Could not set archiveBaseName: ${e.message}")
+                // Ignore
+            }
+            
+            // Only set archiveBaseName if user hasn't set it and it's still the default (project.name)
+            if (currentBaseName == null || currentBaseName == project.name) {
+                // Use original source file name if available (stored before docFx updated extension.source)
+                if (extension.originalSourceFileName != null && !extension.originalSourceFileName.trim().isEmpty()) {
+                    baseName = extension.originalSourceFileName
+                    project.logger.debug("docFxZip: Using original source file name for archive: ${baseName}")
+                } else {
+                    // Fallback to current source file name (docfx.json)
+                    baseName = sourceFile.name
+                    if (baseName.endsWith('.json')) {
+                        baseName = baseName.substring(0, baseName.length() - 5)
+                    }
+                }
+                
+                // Set archiveBaseName (works for both Gradle 8 and 9)
+                try {
+                    if (zipTask.hasProperty('archiveBaseName')) {
+                        def prop = zipTask.archiveBaseName
+                        if (prop instanceof org.gradle.api.provider.Property) {
+                            // Gradle 9+ - Property API
+                            prop.set(baseName)
+                        } else {
+                            // Gradle 8 - direct property
+                            zipTask.archiveBaseName = baseName
+                        }
+                    }
+                } catch (Exception e) {
+                    project.logger.debug("Could not set archiveBaseName: ${e.message}")
+                }
+            } else {
+                project.logger.debug("docFxZip: Using user-configured archiveBaseName: ${currentBaseName}")
             }
             
             // Configure inputs/outputs for up-to-date checking
