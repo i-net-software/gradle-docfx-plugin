@@ -41,109 +41,79 @@ class DocFxPlugin implements Plugin<Project> {
             task.group = "documentation"
             task.description = "Packages the generated DocFX documentation into a zip file"
             task.dependsOn(docsTask)
-            
-            // Use onlyIf to allow task to run even if source is not set yet
-            // (source might be set in another task's doLast, e.g., msbuild.doLast)
-            // Actual checks happen in doFirst after dependencies have run
-            task.onlyIf {
-                // Always allow the task to run - we'll check conditions in doFirst
-                // This handles the case where source is set in another task's doLast
-                return true
+            task.archiveClassifier = "docfx"
+            task.destinationDirectory = project.file("${project.buildDir}/distributions")
+        }
+        
+        // Configure the zip task in docFx task's doLast (after _site directory is created)
+        // This is the correct place to configure the 'from' for the Zip task
+        docsTask.doLast {
+            // Get source from extension (after docFx has potentially updated it to point to docfx.json)
+            def source = extension.source
+            if ((source == null || source.trim().isEmpty()) && docsTask.hasProperty('source')) {
+                source = docsTask.source
             }
             
-            task.doFirst {
-                project.logger.quiet("docFxZip: Starting zip task")
-                
-                // Check source from extension first, then from docFx task (in case it was set on the task)
-                def source = extension.source
-                if ((source == null || source.trim().isEmpty()) && docsTask.hasProperty('source')) {
-                    source = docsTask.source
-                }
-                
-                project.logger.quiet("docFxZip: checking conditions, extension.source=${extension.source}, docFx.source=${docsTask.hasProperty('source') ? docsTask.source : 'N/A'}, resolved source=${source}")
-                
-                if (source == null || source.trim().isEmpty()) {
-                    throw new org.gradle.api.tasks.StopExecutionException("docFxZip SKIPPED: source is not set (null or empty) - docFx task may not have source configured. Make sure docFx.source is set before docFxZip runs.")
-                }
-                
-                // Determine the output directory from the docfx.json source
-                def sourceFile = project.file(source)
-                project.logger.quiet("docFxZip: checking source file: ${sourceFile.absolutePath}, exists=${sourceFile.exists()}")
-                
-                if (!sourceFile.exists()) {
-                    throw new org.gradle.api.tasks.StopExecutionException("docFxZip SKIPPED: source file does not exist: ${sourceFile.absolutePath}")
-                }
-                
-                def sourceDir = sourceFile.parentFile
-                def siteDir = new File(sourceDir, "_site")
-                project.logger.quiet("docFxZip: checking _site directory: ${siteDir.absolutePath}, exists=${siteDir.exists()}")
-                
-                if (!siteDir.exists()) {
-                    throw new org.gradle.api.tasks.StopExecutionException("docFxZip SKIPPED: _site directory does not exist at ${siteDir.absolutePath} (docFx task may not have run successfully)")
-                }
-                
-                project.logger.quiet("docFxZip: ALL CONDITIONS MET - zipping _site directory from ${siteDir.absolutePath}")
-                task.from(siteDir) {
-                    into "/"
-                }
-                task.destinationDirectory = project.file("${project.buildDir}/distributions")
-                task.archiveClassifier = "docfx"
-                
-                // Set archive base name from source file name
-                def baseName = sourceFile.name
-                if (baseName.endsWith('.json')) {
-                    baseName = baseName.substring(0, baseName.length() - 5)
-                }
-                
-                // Set archiveBaseName (works for both Gradle 8 and 9)
-                // In Gradle 8, archiveBaseName is a property
-                // In Gradle 9+, archiveBaseName is a Property<String>
-                try {
-                    if (task.hasProperty('archiveBaseName')) {
-                        def prop = task.archiveBaseName
-                        if (prop instanceof org.gradle.api.provider.Property) {
-                            // Gradle 9+ - Property API
-                            if (!prop.isPresent() || prop.get() == project.name) {
-                                prop.set(baseName)
-                            }
-                        } else {
-                            // Gradle 8 - direct property
-                            if (prop == null || prop == project.name) {
-                                task.archiveBaseName = baseName
-                            }
+            if (source == null || source.trim().isEmpty()) {
+                project.logger.info("docFxZip: source is not set, skipping zip configuration")
+                return
+            }
+            
+            // Determine the output directory from the docfx.json source
+            // After docFx runs, extension.source points to the docfx.json file
+            def sourceFile = project.file(source)
+            if (!sourceFile.exists()) {
+                project.logger.info("docFxZip: source file does not exist: ${sourceFile.absolutePath}, skipping zip configuration")
+                return
+            }
+            
+            def sourceDir = sourceFile.parentFile
+            def siteDir = new File(sourceDir, "_site")
+            
+            if (!siteDir.exists()) {
+                project.logger.info("docFxZip: _site directory does not exist at ${siteDir.absolutePath}, skipping zip configuration")
+                return
+            }
+            
+            project.logger.quiet("docFxZip: Configuring zip task from _site directory: ${siteDir.absolutePath}")
+            
+            // Configure the zip task's from (this happens in docFx.doLast, which is the right time)
+            zipTask.from(siteDir) {
+                into "/"
+            }
+            
+            // Set archive base name from source file name
+            def baseName = sourceFile.name
+            if (baseName.endsWith('.json')) {
+                baseName = baseName.substring(0, baseName.length() - 5)
+            }
+            
+            // Set archiveBaseName (works for both Gradle 8 and 9)
+            try {
+                if (zipTask.hasProperty('archiveBaseName')) {
+                    def prop = zipTask.archiveBaseName
+                    if (prop instanceof org.gradle.api.provider.Property) {
+                        // Gradle 9+ - Property API
+                        if (!prop.isPresent() || prop.get() == project.name) {
+                            prop.set(baseName)
+                        }
+                    } else {
+                        // Gradle 8 - direct property
+                        if (prop == null || prop == project.name) {
+                            zipTask.archiveBaseName = baseName
                         }
                     }
-                } catch (Exception e) {
-                    project.logger.debug("Could not set archiveBaseName: ${e.message}")
                 }
+            } catch (Exception e) {
+                project.logger.debug("Could not set archiveBaseName: ${e.message}")
             }
             
-            task.doLast {
-                project.logger.quiet("docFxZip: Completed zip task")
-            }
+            // Configure inputs/outputs for up-to-date checking
+            zipTask.inputs.dir(siteDir).optional()
+            zipTask.outputs.file(zipTask.archiveFile)
         }
 
         // Make docs task finalized by zip task
         docsTask.finalizedBy(zipTask)
-        
-        // After evaluation, find any custom Docs tasks and make docFxZip depend on them
-        // This allows build scripts to create custom Docs tasks and have them work with docFxZip
-        project.afterEvaluate {
-            project.tasks.withType(Docs).each { docsTaskInstance ->
-                if (docsTaskInstance != docsTask && docsTaskInstance.name != DOCS_TASK) {
-                    // Found a custom Docs task - make docFxZip depend on it
-                    zipTask.dependsOn(docsTaskInstance)
-                    // Also make the custom task finalized by zip
-                    docsTaskInstance.finalizedBy(zipTask)
-                }
-            }
-            
-            // Optionally hook into common publishing tasks
-            // Check for preparePublish task (common in build scripts)
-            def preparePublishTask = project.tasks.findByName('preparePublish')
-            if (preparePublishTask != null) {
-                preparePublishTask.dependsOn(zipTask)
-            }
-        }
     }
 }
